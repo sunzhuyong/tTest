@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISIONAssembly Python 脚本 API 参考手册</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 左侧导航栏 */
+        #sidebar {
+            width: 320px;
+            background: #1e3a5f;
+            color: white;
+            overflow-y: auto;
+            flex-shrink: 0;
+            border-right: 1px solid #0d2137;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #0d2137;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            border: none;
+            padding: 0;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #2a4a6f;
+            color: white;
+        }
+
+        #search-input::placeholder {
+            color: #8faabe;
+        }
+
+        .nav-section {
+            border-bottom: 1px solid #2a4a6f;
+        }
+
+        .nav-section-title {
+            padding: 12px 20px;
+            background: #152a45;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .nav-section-title:hover {
+            background: #1e3a5f;
+        }
+
+        .nav-section-title::after {
+            content: "▼";
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .nav-section.collapsed .nav-section-title::after {
+            transform: rotate(-90deg);
+        }
+
+        .nav-section.collapsed .nav-items {
+            display: none;
+        }
+
+        .nav-items {
+            padding: 8px 0;
+        }
+
+        .nav-item {
+            padding: 8px 20px 8px 30px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #b8c5d6;
+            display: block;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: #2a4a6f;
+            color: white;
+        }
+
+        .nav-item.active {
+            background: #4fc3f7;
+            color: #0d2137;
+        }
+
+        .nav-item-desc {
+            font-size: 11px;
+            color: #7a8fa6;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* 主内容区 */
+        #main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 40px;
+            background: #f5f7fa;
+        }
+
+        .content-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #1e3a5f;
+            font-size: 28px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #4fc3f7;
+        }
+
+        h2 {
+            color: #2a7c4f;
+            font-size: 22px;
+            margin: 30px 0 20px;
+            padding: 10px 15px;
+            background: #e8f5e9;
+            border-left: 4px solid #2a7c4f;
+        }
+
+        h3 {
+            color: #c77d00;
+            font-size: 18px;
+            margin: 25px 0 15px;
+            padding: 8px 12px;
+            background: #fff8e1;
+            border-left: 3px solid #c77d00;
+        }
+
+        h4 {
+            color: #1565c0;
+            font-size: 16px;
+            margin: 20px 0 10px;
+        }
+
+        code {
+            background: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #abb2bf;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #1e3a5f;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #e3f2fd;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .anchor {
+            display: block;
+            padding-top: 80px;
+            margin-top: -80px;
+        }
+
+        .method-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .method-list li {
+            padding: 10px 15px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-left: 3px solid #4fc3f7;
+            border-radius: 4px;
+        }
+
+        .method-list li:hover {
+            background: #e3f2fd;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #4fc3f7;
+            color: #0d2137;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .back-to-top:hover {
+            background: #29b6f6;
+        }
+
+        /* 折叠菜单样式 */
+        .sub-nav {
+            display: none;
+            padding-left: 20px;
+        }
+
+        .nav-section:not(.collapsed) .sub-nav {
+            display: block;
+        }
+
+        .sub-nav .nav-item {
+            font-size: 12px;
+            padding: 6px 20px 6px 40px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 左侧导航栏 -->
+<div id="sidebar">
+    <div class="sidebar-header">
+        <h1>VISIONAssembly API</h1>
+        <input type="text" id="search-input" placeholder="搜索 API..." oninput="searchAPI()">
+    </div>
+
+    <!-- 核心对象 -->
+    <div class="nav-section">
+        <div class="nav-section-title" onclick="toggleSection(this)">核心对象</div>
+        <div class="nav-items">
+            <a href="#gvtool" class="nav-item">GvTool
+                <span class="nav-item-desc">工具参数操作</span>
+            </a>
+            <a href="#gvvar" class="nav-item">GvVar
+                <span class="nav-item-desc">变量管理</span>
+            </a>
+            <a href="#gvvisionassembly" class="nav-item">GvVisionAssembly
+                <span class="nav-item-desc">核心功能模块</span>
+            </a>
+            <a href="#gvguidataagent" class="nav-item">GvGuiDataAgent
+                <span class="nav-item-desc">GUI显示到视图</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 数据类型 -->
+    <div class="nav-section">
+        <div class="nav-section-title" onclick="toggleSection(this)">数据类型</div>
+        <div class="nav-items">
+            <a href="#sc2vector" class="nav-item">sc2Vector
+                <span class="nav-item-desc">二维向量/坐标点</span>
+            </a>
+            <a href="#sccircle" class="nav-item">scCircle
+                <span class="nav-item-desc">圆形</span>
+            </a>
+            <a href="#scline" class="nav-item">scLine
+                <span class="nav-item-desc">直线</span>
+            </a>
+            <a href="#screct" class="nav-item">scRect
+                <span class="nav-item-desc">矩形</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- GUI 显示 -->
+    <div class="nav-section">
+        <div class="nav-section-title" onclick="toggleSection(this)">GUI 显示组件</div>
+        <div class="nav-items">
+            <a href="#gcscriptguiarray" class="nav-item">GcScriptGuiArray
+                <span class="nav-item-desc">GUI数组容器</span>
+            </a>
+            <a href="#gsscriptguistyle" class="nav-item">GsScriptGuiStyle
+                <span class="nav-item-desc">GUI样式/颜色</span>
+            </a>
+            <a href="#gsscriptguicircle" class="nav-item">GsScriptGuiCircle
+                <span class="nav-item-desc">显示圆形</span>
+            </a>
+            <a href="#gsscriptguitext" class="nav-item">GsScriptGuiText
+                <span class="nav-item-desc">显示文本</span>
+            </a>
+            <a href="#gsscriptgirect" class="nav-item">GsScriptGuiRect
+                <span class="nav-item-desc">显示矩形</span>
+            </a>
+            <a href="#gsscriptguiline" class="nav-item">GsScriptGuiLine
+                <span class="nav-item-desc">显示直线</span>
+            </a>
+            <a href="#gsscriptguicross" class="nav-item">GsScriptGuiCross
+                <span class="nav-item-desc">显示十字</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 消息报告 -->
+    <div class="nav-section">
+        <div class="nav-section-title" onclick="toggleSection(this)">消息报告</div>
+        <div class="nav-items">
+            <a href="#reportmessage" class="nav-item">ReportMessage
+                <span class="nav-item-desc">消息报告函数</span>
+            </a>
+            <a href="#gemsgreporttype" class="nav-item">GeMsgReportType
+                <span class="nav-item-desc">消息类型枚举</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 常用示例 -->
+    <div class="nav-section">
+        <div class="nav-section-title" onclick="toggleSection(this)">常用示例</div>
+        <div class="nav-items">
+            <a href="#example-circle" class="nav-item">显示圆形
+                <span class="nav-item-desc">获取找圆结果并显示</span>
+            </a>
+            <a href="#example-multiple" class="nav-item">显示多个图形
+                <span class="nav-item-desc">循环显示多个圆</span>
+            </a>
+            <a href="#example-array" class="nav-item">数组解析
+                <span class="nav-item-desc">获取数组数据</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 主内容区 -->
+<div id="main-content">
+
+    <!-- GvTool -->
+    <div class="content-section" id="gvtool">
+        <h1>GvTool - 工具参数操作</h1>
+
+        <div class="info">
+            <strong>功能：</strong>用于和工具参数交互。禁止自己定义，直接使用内置的 GvTool 对象。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><a href="#gvtool-gettooldata"><code>GetToolData(str, is_raw_string)</code></a> - 获取工具参数</li>
+            <li><a href="#gvtool-settooldata"><code>SetToolData(str, value, is_raw_string)</code></a> - 设置工具参数</li>
+        </ul>
+
+        <h3 id="gvtool-gettooldata">GetToolData(str, is_raw_string)</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>str</td>
+                <td>string</td>
+                <td>工具参数名，格式："工具名.参数名"，如 "找圆工具_001.圆心"</td>
+            </tr>
+            <tr>
+                <td>is_raw_string</td>
+                <td>bool</td>
+                <td>可选，默认 False。True=获取原始字符串(bytes)，False=UTF-8转换</td>
+            </tr>
+        </table>
+        <p><strong>返回值：</strong>对应工具参数的拷贝</p>
+
+        <div class="note">
+            <strong>注意：</strong>获取的是一份拷贝，对拷贝修改不会自动同步到工具，需要配合 SetToolData() 使用。
+        </div>
+
+        <h4>示例代码</h4>
+        <pre><code># 获取圆心坐标（分量的方式）
+x = GvTool.GetToolData("找圆工具_001.圆心.X")
+y = GvTool.GetToolData("找圆工具_001.圆心.Y")
+r = GvTool.GetToolData("找圆工具_001.半径")
+
+# 获取整体对象
+center = GvTool.GetToolData("找圆工具_001.圆心")
+print(center.GetX(), center.GetY())</code></pre>
+
+        <h3 id="gvtool-settooldata">SetToolData(str, value, is_raw_string)</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>str</td>
+                <td>string</td>
+                <td>工具参数名，格式："工具名.参数名"</td>
+            </tr>
+            <tr>
+                <td>value</td>
+                <td>any</td>
+                <td>要设置的值</td>
+            </tr>
+            <tr>
+                <td>is_raw_string</td>
+                <td>bool</td>
+                <td>可选，默认 False。True=设置原始字符串(bytes)，False=GBK转换</td>
+            </tr>
+        </table>
+        <p><strong>返回值：</strong>bool，表示是否设置成功</p>
+
+        <h4>示例代码</h4>
+        <pre><code># 设置工具参数
+GvTool.SetToolData("找圆工具_001.半径", 50.0)
+GvTool.SetToolData("Blob工具_001.总像素数上限", GvVisionAssembly.Limit_Int(1000))</code></pre>
+    </div>
+
+    <!-- GvVar -->
+    <div class="content-section" id="gvvar">
+        <h1>GvVar - 变量管理</h1>
+
+        <div class="info">
+            <strong>功能：</strong>用于操作变量管理中的变量。禁止自己定义，直接使用内置的 GvVar 对象。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><a href="#gvvar-getvar"><code>GetVar(str, is_raw_string)</code></a> - 获取变量</li>
+            <li><a href="#gvvar-setvar"><code>SetVar(str, value, is_raw_string)</code></a> - 设置变量</li>
+        </ul>
+
+        <h3 id="gvvar-getvar">GetVar(str, is_raw_string)</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>str</td>
+                <td>string</td>
+                <td>变量名，如 "#L1"、"@G1"</td>
+            </tr>
+            <tr>
+                <td>is_raw_string</td>
+                <td>bool</td>
+                <td>可选，默认 False</td>
+            </tr>
+        </table>
+        <p><strong>返回值：</strong>变量的拷贝</p>
+
+        <h4>示例代码</h4>
+        <pre><code># 获取变量
+a = GvVar.GetVar("#L0")
+x = GvVar.GetVar("#X")
+y = GvVar.GetVar("#Y")
+pos_i = GvVar.GetVar("#i")</code></pre>
+
+        <h3 id="gvvar-setvar">SetVar(str, value, is_raw_string)</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>str</td>
+                <td>string</td>
+                <td>变量名，如 "#L1"、"@G1"</td>
+            </tr>
+            <tr>
+                <td>value</td>
+                <td>any</td>
+                <td>要设置的值</td>
+            </tr>
+        </table>
+        <p><strong>返回值：</strong>bool，表示是否设置成功</p>
+
+        <h4>示例代码</h4>
+        <pre><code># 设置变量
+GvVar.SetVar("#L0", 100)
+GvVar.SetVar("#Count", 5)</code></pre>
+    </div>
+
+    <!-- GvVisionAssembly -->
+    <div class="content-section" id="gvvisionassembly">
+        <h1>GvVisionAssembly - 核心功能模块</h1>
+
+        <div class="info">
+            <strong>功能：</strong>提供 GUI 创建、消息报告、上下限设置等核心功能。
+        </div>
+
+        <h2>构造函数/方法列表</h2>
+        <ul class="method-list">
+            <li><code>Limit_Int(值)</code> - 创建整型上下限</li>
+            <li><code>Limit_Double(值)</code> - 创建浮点型上下限</li>
+            <li><code>GsScriptGuiStyle()</code> - 创建 GUI 样式</li>
+            <li><code>GsScriptGuiText()</code> - 创建文本</li>
+            <li><code>GsScriptGuiRect()</code> - 创建矩形</li>
+            <li><code>GsScriptGuiCircle()</code> - 创建圆形</li>
+            <li><code>GsScriptGuiLine()</code> - 创建直线</li>
+            <li><code>GsScriptGuiCross()</code> - 创建十字</li>
+            <li><code>GcScriptGuiArray()</code> - 创建 GUI 数组</li>
+            <li><code>sc2Vector(x, y)</code> - 创建二维向量</li>
+            <li><code>scCircle(圆心, 半径)</code> - 创建圆形</li>
+            <li><code>scRect(左上角, 右下角)</code> - 创建矩形</li>
+            <li><code>scLine(起点, 终点)</code> - 创建直线</li>
+            <li><code>ReportMessage(消息, 类型, 是否禁止弹窗)</code> - 消息报告</li>
+            <li><code>GeMsgReportType</code> - 消息类型枚举</li>
+        </ul>
+
+        <h3>Limit_Int / Limit_Double - 上下限设置</h3>
+        <p>用于设置工具的上下限参数（如 Blob 工具的总像素数上限）</p>
+
+        <h4>示例代码</h4>
+        <pre><code># 设置整型上下限
+GvTool.SetToolData("Blob工具_001.总像素数上限", GvVisionAssembly.Limit_Int(1000))
+
+# 设置浮点型上下限
+GvTool.SetToolData("找线工具_003.直线变化角度上限", GvVisionAssembly.Limit_Double(10.0))</code></pre>
+    </div>
+
+    <!-- 数据类型 sc2Vector -->
+    <div class="content-section" id="sc2vector">
+        <h1>sc2Vector - 二维向量</h1>
+
+        <div class="info">
+            <strong>功能：</strong>表示二维向量/坐标点，用于圆心、直线端点、位置坐标等。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><code>sc2Vector(x, y)</code> - 构造函数</li>
+            <li><code>GetX()</code> - 获取 X 坐标</li>
+            <li><code>GetY()</code> - 获取 Y 坐标</li>
+            <li><code>SetX(值)</code> - 设置 X 坐标</li>
+            <li><code>SetY(值)</code> - 设置 Y 坐标</li>
+        </ul>
+
+        <h3>构造函数</h3>
+        <pre><code># 默认构造 (0, 0)
+vec = GvVisionAssembly.sc2Vector()
+
+# 指定坐标
+vec = GvVisionAssembly.sc2Vector(100, 200)</code></pre>
+
+        <h3>获取/设置坐标</h3>
+        <pre><code>center = GvTool.GetToolData("找圆工具_001.圆心")
+
+# 获取坐标
+x = center.GetX()
+y = center.GetY()
+
+# 设置坐标
+center.SetX(100)
+center.SetY(200)</code></pre>
+
+        <h3>向量运算</h3>
+        <pre><code>a = GvVisionAssembly.sc2Vector(10, 20)
+b = GvVisionAssembly.sc2Vector(5, 10)
+
+c = a + b  # 结果: (15, 30)
+d = a - b  # 结果: (5, 10)</code></pre>
+    </div>
+
+    <!-- 数据类型 scCircle -->
+    <div class="content-section" id="sccircle">
+        <h1>scCircle - 圆形</h1>
+
+        <div class="info">
+            <strong>功能：</strong>表示圆形，用于创建显示圆形或处理圆形结果。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><code>scCircle(圆心, 半径)</code> - 构造函数</li>
+            <li><code>GetCenter()</code> - 获取圆心 (sc2Vector)</li>
+            <li><code>GetRadius()</code> - 获取半径 (float)</li>
+            <li><code>SetCenter(sc2Vector)</code> - 设置圆心</li>
+            <li><code>SetRadius(float)</code> - 设置半径</li>
+        </ul>
+
+        <h3>构造函数</h3>
+        <pre><code>center = GvVisionAssembly.sc2Vector(100, 200)
+circle = GvVisionAssembly.scCircle(center, 50)  # 圆心(100,200)，半径50</code></pre>
+
+        <h3>获取圆的属性</h3>
+        <pre><code># 从工具获取圆形数据
+circle = GvTool.GetToolData("找圆工具_001.圆结果")
+
+# 获取属性
+center = circle.GetCenter()
+x = center.GetX()
+y = center.GetY()
+r = circle.GetRadius()</code></pre>
+    </div>
+
+    <!-- 数据类型 scLine -->
+    <div class="content-section" id="scline">
+        <h1>scLine - 直线</h1>
+
+        <h2>构造函数</h2>
+        <pre><code>start = GvVisionAssembly.sc2Vector(0, 0)
+end = GvVisionAssembly.sc2Vector(100, 100)
+line = GvVisionAssembly.scLine(start, end)</code></pre>
+    </div>
+
+    <!-- 数据类型 scRect -->
+    <div class="content-section" id="screct">
+        <h1>scRect - 矩形</h1>
+
+        <h2>构造函数</h2>
+        <pre><code>top_left = GvVisionAssembly.sc2Vector(10, 10)
+bottom_right = GvVisionAssembly.sc2Vector(200, 150)
+rect = GvVisionAssembly.scRect(top_left, bottom_right)</code></pre>
+    </div>
+
+    <!-- GcScriptGuiArray -->
+    <div class="content-section" id="gcscriptguiarray">
+        <h1>GcScriptGuiArray - GUI 数组容器</h1>
+
+        <div class="info">
+            <strong>功能：</strong>用于存储要显示到视图窗口的 GUI 对象。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><code>GcScriptGuiArray()</code> - 构造函数</li>
+            <li><code>Add(GUI对象)</code> - 添加 GUI 对象</li>
+        </ul>
+
+        <h3>示例代码</h3>
+        <pre><code>guiArray = GvVisionAssembly.GcScriptGuiArray()
+
+# 添加图形
+guiArray.Add(guiCircle)   # 圆形
+guiArray.Add(guiText)     # 文本
+guiArray.Add(guiRect)     # 矩形
+
+# 显示
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GsScriptGuiStyle -->
+    <div class="content-section" id="gsscriptguistyle">
+        <h1>GsScriptGuiStyle - GUI 样式</h1>
+
+        <div class="info">
+            <strong>功能：</strong>设置 GUI 的显示样式，包括颜色、线型、字体等。
+        </div>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+                <th>示例</th>
+            </tr>
+            <tr>
+                <td>bVisible</td>
+                <td>bool</td>
+                <td>是否可见</td>
+                <td>True / False</td>
+            </tr>
+            <tr>
+                <td>nLineStyle</td>
+                <td>int</td>
+                <td>线型 (0=实线, 1=虚线, 2=点线, 3=点划线, 4=双点划线)</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>nLineWidth</td>
+                <td>int</td>
+                <td>线宽 (1-15)</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>clrLineColor</td>
+                <td>list</td>
+                <td>颜色 [R, G, B]</td>
+                <td>[255, 0, 0]</td>
+            </tr>
+            <tr>
+                <td>bLabelVisible</td>
+                <td>bool</td>
+                <td>标签是否可见</td>
+                <td>True / False</td>
+            </tr>
+            <tr>
+                <td>strLabel</td>
+                <td>string</td>
+                <td>标签内容</td>
+                <td>"标签"</td>
+            </tr>
+            <tr>
+                <td>strLabelFont</td>
+                <td>string</td>
+                <td>标签字体</td>
+                <td>"Arial"</td>
+            </tr>
+            <tr>
+                <td>lFontSize</td>
+                <td>int</td>
+                <td>字体大小 (8-360)</td>
+                <td>20</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.bVisible = True
+guiStyle.nLineStyle = 0          # 实线
+guiStyle.nLineWidth = 2
+guiStyle.clrLineColor = [255, 0, 0]  # 红色
+guiStyle.bLabelVisible = True
+guiStyle.strLabel = "标签"
+guiStyle.strLabelFont = "Arial"
+guiStyle.lFontSize = 20</code></pre>
+    </div>
+
+    <!-- GsScriptGuiCircle -->
+    <div class="content-section" id="gsscriptguicircle">
+        <h1>GsScriptGuiCircle - 显示圆形</h1>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>sScriptGuiStyle</td>
+                <td>GsScriptGuiStyle</td>
+                <td>显示样式</td>
+            </tr>
+            <tr>
+                <td>circle</td>
+                <td>scCircle</td>
+                <td>要显示的圆形</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.clrLineColor = [0, 255, 0]  # 绿色
+guiStyle.nLineWidth = 2
+
+guiCircle = GvVisionAssembly.GsScriptGuiCircle()
+center = GvVisionAssembly.sc2Vector(100, 200)
+guiCircle.circle = GvVisionAssembly.scCircle(center, 50)
+guiCircle.sScriptGuiStyle = guiStyle
+
+guiArray = GvVisionAssembly.GcScriptGuiArray()
+guiArray.Add(guiCircle)
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GsScriptGuiText -->
+    <div class="content-section" id="gsscriptguitext">
+        <h1>GsScriptGuiText - 显示文本</h1>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>sScriptGuiStyle</td>
+                <td>GsScriptGuiStyle</td>
+                <td>文本样式</td>
+            </tr>
+            <tr>
+                <td>strText</td>
+                <td>string</td>
+                <td>文本内容</td>
+            </tr>
+            <tr>
+                <td>posX</td>
+                <td>float</td>
+                <td>X 坐标</td>
+            </tr>
+            <tr>
+                <td>posY</td>
+                <td>float</td>
+                <td>Y 坐标</td>
+            </tr>
+            <tr>
+                <td>deg</td>
+                <td>float</td>
+                <td>旋转角度</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.clrLineColor = [255, 0, 0]  # 红色
+guiStyle.lFontSize = 30
+
+guiText = GvVisionAssembly.GsScriptGuiText()
+guiText.strText = "第1个圆"
+guiText.posX = 100
+guiText.posY = 200
+guiText.deg = 0
+guiText.sScriptGuiStyle = guiStyle
+
+guiArray = GvVisionAssembly.GcScriptGuiArray()
+guiArray.Add(guiText)
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GsScriptGuiRect -->
+    <div class="content-section" id="gsscriptgirect">
+        <h1>GsScriptGuiRect - 显示矩形</h1>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>sScriptGuiStyle</td>
+                <td>GsScriptGuiStyle</td>
+                <td>显示样式</td>
+            </tr>
+            <tr>
+                <td>rect</td>
+                <td>scRect</td>
+                <td>要显示的矩形</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.clrLineColor = [0, 0, 255]  # 蓝色
+
+guiRect = GvVisionAssembly.GsScriptGuiRect()
+guiRect.rect = GvVisionAssembly.scRect(
+    GvVisionAssembly.sc2Vector(10, 10),
+    GvVisionAssembly.sc2Vector(200, 150)
+)
+guiRect.sScriptGuiStyle = guiStyle
+
+guiArray = GvVisionAssembly.GcScriptGuiArray()
+guiArray.Add(guiRect)
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GsScriptGuiLine -->
+    <div class="content-section" id="gsscriptguiline">
+        <h1>GsScriptGuiLine - 显示直线</h1>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>sScriptGuiStyle</td>
+                <td>GsScriptGuiStyle</td>
+                <td>显示样式</td>
+            </tr>
+            <tr>
+                <td>line</td>
+                <td>scLine</td>
+                <td>要显示的直线</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.clrLineColor = [255, 255, 0]  # 黄色
+guiStyle.nLineWidth = 2
+
+guiLine = GvVisionAssembly.GsScriptGuiLine()
+line = GvTool.GetToolData("找线工具_002.直线结果")
+guiLine.line = line
+guiLine.sScriptGuiStyle = guiStyle
+
+guiArray = GvVisionAssembly.GcScriptGuiArray()
+guiArray.Add(guiLine)
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GsScriptGuiCross -->
+    <div class="content-section" id="gsscriptguicross">
+        <h1>GsScriptGuiCross - 显示十字</h1>
+
+        <h2>属性列表</h2>
+        <table>
+            <tr>
+                <th>属性</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>sScriptGuiStyle</td>
+                <td>GsScriptGuiStyle</td>
+                <td>显示样式</td>
+            </tr>
+            <tr>
+                <td>cross</td>
+                <td>sc2Vector</td>
+                <td>十字中心位置</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>guiStyle = GvVisionAssembly.GsScriptGuiStyle()
+guiStyle.clrLineColor = [0, 0, 255]  # 蓝色
+
+guiCross = GvVisionAssembly.GsScriptGuiCross()
+guiCross.sScriptGuiStyle = guiStyle
+guiCross.cross.SetX(500.0)
+guiCross.cross.SetY(200.0)
+
+guiArray = GvVisionAssembly.GcScriptGuiArray()
+guiArray.Add(guiCross)
+GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+    </div>
+
+    <!-- GvGuiDataAgent -->
+    <div class="content-section" id="gvguidataagent">
+        <h1>GvGuiDataAgent - GUI 显示到视图</h1>
+
+        <div class="info">
+            <strong>功能：</strong>将 GUI 对象数组显示到视图窗口。禁止自己定义，直接使用内置对象。
+        </div>
+
+        <h2>方法列表</h2>
+        <ul class="method-list">
+            <li><code>SetGraphicDisplay(视图名, GUI数组)</code> - 显示 GUI 到视图</li>
+        </ul>
+
+        <h3>参数说明</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>视图名</td>
+                <td>string</td>
+                <td>如 "View-1"、"View-2"</td>
+            </tr>
+            <tr>
+                <td>GUI数组</td>
+                <td>GcScriptGuiArray</td>
+                <td>要显示的 GUI 对象数组</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>GvGuiDataAgent.SetGraphicDisplay("View-1", guiArray)</code></pre>
+
+        <div class="warning">
+            <strong>注意：</strong>每次调用 SetGraphicDisplay 会清空视图上一次的显示内容。
+        </div>
+    </div>
+
+    <!-- 消息报告 -->
+    <div class="content-section" id="reportmessage">
+        <h1>ReportMessage - 消息报告</h1>
+
+        <h2>函数</h2>
+        <pre><code>GvVisionAssembly.ReportMessage(消息, 类型, 是否禁止弹窗)</code></pre>
+
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>消息</td>
+                <td>string</td>
+                <td>要报告的消息内容</td>
+            </tr>
+            <tr>
+                <td>类型</td>
+                <td>GeMsgReportType</td>
+                <td>消息类型</td>
+            </tr>
+            <tr>
+                <td>是否禁止弹窗</td>
+                <td>bool</td>
+                <td>True=禁止弹窗, False=允许弹窗</td>
+            </tr>
+        </table>
+
+        <h3 id="gemsgreporttype">GeMsgReportType - 消息类型</h3>
+        <table>
+            <tr>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>eMRTFatalErr</td>
+                <td>致命错误</td>
+            </tr>
+            <tr>
+                <td>eMRTErr</td>
+                <td>错误</td>
+            </tr>
+            <tr>
+                <td>eMRTWarn</td>
+                <td>警告</td>
+            </tr>
+            <tr>
+                <td>eMRTInfo</td>
+                <td>信息</td>
+            </tr>
+            <tr>
+                <td>eMRTDebug</td>
+                <td>调试</td>
+            </tr>
+        </table>
+
+        <h3>示例代码</h3>
+        <pre><code>msg_type = GvVisionAssembly.GeMsgReportType
+
+# 报告错误
+GvVisionAssembly.ReportMessage("未找到圆", msg_type.eMRTErr, False)
+
+# 报告警告
+GvVisionAssembly.ReportMessage("半径过小", msg_type.eMRTWarn, False)
+
+# 报告信息
+GvVisionAssembly.ReportMessage("处理完成", msg_type.eMRTInfo, False)</code></pre>
+    </div>
+
+    <!-- 常用示例 -->
+    <div class="content-section" id="example-circle">
+        <h1>示例：获取找圆结果并显示</h1>
+
+        <pre><code>from ScImageShow import ScImageShow
+
+# 获取变量
+pos_i = int(GvVar.GetVar("#i"))
+
+# 获取找圆结果
+center = GvTool.GetToolData("找圆工具_001.圆心")
+r = GvTool.GetToolData("找圆工具_001.半径")
+
+# 创建样式
+gui_style = GvVisionAssembly.GsScriptGuiStyle()
+gui_style.clrLineColor = [0, 255, 0]   # 绿色
+gui_style.lFontSize = 30
+
+# 圆形
+guiCircle = GvVisionAssembly.GsScriptGuiCircle()
+guiCircle.circle = GvVisionAssembly.scCircle(center, r)
+guiCircle.sScriptGuiStyle = gui_style
+
+# 文本
+gui_text = GvVisionAssembly.GsScriptGuiText()
+gui_text.strText = f"第 {pos_i + 1} 个圆"
+gui_text.posX = center.GetX() - 50
+gui_text.posY = center.GetY()
+gui_text.sScriptGuiStyle = gui_style
+
+# 显示
+gui_array = GvVisionAssembly.GcScriptGuiArray()
+gui_array.Add(gui_text)
+gui_array.Add(guiCircle)
+
+GvGuiDataAgent.SetGraphicDisplay("View-1", gui_array)</code></pre>
+    </div>
+
+    <div class="content-section" id="example-multiple">
+        <h1>示例：显示多个圆</h1>
+
+        <pre><code># 假设使用多圆多线查找工具
+circles = GvTool.GetToolData("多圆多线查找工具_001.圆结果数组")
+count = len(circles)
+
+gui_style = GvVisionAssembly.GsScriptGuiStyle()
+gui_style.clrLineColor = [0, 255, 0]
+gui_style.lFontSize = 25
+
+gui_array = GvVisionAssembly.GcScriptGuiArray()
+
+for i in range(count):
+    circle = circles[i]
+    center = circle.GetCenter()
+    r = circle.GetRadius()
+
+    # 添加圆形
+    guiCircle = GvVisionAssembly.GsScriptGuiCircle()
+    guiCircle.circle = GvVisionAssembly.scCircle(center, r)
+    guiCircle.sScriptGuiStyle = gui_style
+    gui_array.Add(guiCircle)
+
+    # 添加文本标签
+    gui_text = GvVisionAssembly.GsScriptGuiText()
+    gui_text.strText = f"圆{i+1}"
+    gui_text.posX = center.GetX()
+    gui_text.posY = center.GetY() - 30
+    gui_text.sScriptGuiStyle = gui_style
+    gui_array.Add(gui_text)
+
+GvGuiDataAgent.SetGraphicDisplay("View-1", gui_array)</code></pre>
+    </div>
+
+    <div class="content-section" id="example-array">
+        <h1>示例：数组解析工具</h1>
+
+        <div class="info">
+            <strong>关键点：</strong>数组解析工具输出的是数组，需要用 <code>GetTrans()</code> 方法获取。
+        </div>
+
+        <pre><code># 获取数组解析工具的输出数据
+result = GvTool.GetToolData("数组解析工具_001.输出数据")
+
+# 使用 GetTrans() 方法获取数组
+data = result.GetTrans()
+
+# 访问数组元素
+x = data[0]   # X坐标
+y = data[1]   # Y坐标
+r = data[2]   # 半径（如果是圆的话）
+
+print(">>>>>:", x, y, r)</code></pre>
+
+        <div class="note">
+            <strong>注意：</strong>GetTrans() 返回的是数组，可以直接用索引访问。
+        </div>
+    </div>
+
+</div>
+
+<!-- 返回顶部按钮 -->
+<div class="back-to-top" onclick="scrollToTop()">↑</div>
+
+<script>
+    // 折叠/展开导航区域
+    function toggleSection(element) {
+        element.parentElement.classList.toggle('collapsed');
+    }
+
+    // 搜索功能
+    function searchAPI() {
+        const input = document.getElementById('search-input');
+        const filter = input.value.toLowerCase();
+        const navItems = document.querySelectorAll('.nav-item');
+
+        navItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.indexOf(filter) > -1) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // 返回顶部
+    function scrollToTop() {
+        document.getElementById('main-content').scrollTop = 0;
+    }
+
+    // 监听滚动，更新导航高亮
+    const mainContent = document.getElementById('main-content');
+    const sections = document.querySelectorAll('.content-section');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    mainContent.addEventListener('scroll', function() {
+        let current = '';
+
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (mainContent.scrollTop >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navItems.forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('href') === '#' + current) {
+                item.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+d:\tTest\FaceRecognitionDemo\obj\Debug\net6.0-windows\FaceRecognitionDemo.csproj.AssemblyReference.cache
+d:\tTest\FaceRecognitionDemo\obj\Debug\net6.0-windows\FaceRecognitionDemo.GeneratedMSBuildEditorConfig.editorconfig
+d:\tTest\FaceRecognitionDemo\obj\Debug\net6.0-windows\FaceRecognitionDemo.AssemblyInfoInputs.cache
+d:\tTest\FaceRecognitionDemo\obj\Debug\net6.0-windows\FaceRecognitionDemo.AssemblyInfo.cs
+d:\tTest\FaceRecognitionDemo\obj\Debug\net6.0-windows\FaceRecognitionDemo.csproj.CoreCompileInputs.cache
