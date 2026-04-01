@@ -13,6 +13,7 @@ public class AutoTraderService
     private System.Windows.Forms.Timer? _timer;
     private System.Windows.Forms.Timer? _fundTimer;
     private bool _isRunning;
+    public bool IsRunning => _isRunning;
     private readonly List<string> _tradeLogs = new();
 
     // 自选股列表
@@ -123,7 +124,7 @@ public class AutoTraderService
     }
 
     /// <summary>
-    /// 扫描市场并执行交易
+    /// 扫描市场并执行交易（公开给Web API调用）
     /// </summary>
     public async Task ScanAndTradeAsync()
     {

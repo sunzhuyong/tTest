@@ -52,7 +52,18 @@
       "Bash(cmd -c \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe auth status 2>&1\")",
       "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe' auth status\")",
       "Bash(powershell.exe -Command '$env:Path = $env:Path + '\\\\'';C:\\\\Program Files\\\\GitHub CLI'\\\\''; gh auth status')",
-      "Bash(powershell.exe -Command \"Set-Alias -Name gh -Value 'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'; gh auth status\")"
+      "Bash(powershell.exe -Command \"Set-Alias -Name gh -Value 'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'; gh auth status\")",
+      "Bash(powershell.exe -Command \"Set-Alias -Name gh -Value 'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'; gh repo create tTest --public --source=. --push\")",
+      "Bash(time curl:*)",
+      "Bash(claude --model help)",
+      "Read(//c/Users/Administrator/.claude/**)",
+      "Bash(where claude:*)",
+      "Bash(dir \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Roaming\\\\npm\")",
+      "Read(//c/Users/Administrator/AppData/Roaming/npm/node_modules/@anthropic-ai/**)",
+      "Read(//c/Users/Administrator/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Administrator\\.claude"
     ]
   }
 }
