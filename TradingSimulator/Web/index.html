@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>模拟炒股控制台</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -16,13 +14,13 @@
         }
         .header {
             background: linear-gradient(135deg, #16213e, #0f3460);
-            padding: 20px;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
-        .header h1 { font-size: 24px; color: #00d9ff; }
+        .header h1 { font-size: 20px; color: #00d9ff; }
         .status-badge {
             padding: 5px 15px;
             border-radius: 20px;
@@ -34,61 +32,87 @@
         .container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
+            gap: 15px;
+            padding: 15px;
         }
         .card {
             background: #16213e;
             border-radius: 10px;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .card.full { grid-column: 1 / -1; }
         .card h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
+            font-size: 16px;
+            margin-bottom: 12px;
             color: #00d9ff;
             border-bottom: 1px solid #0f3460;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .account-info {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 10px;
         }
         .info-item {
             text-align: center;
-            padding: 15px;
+            padding: 12px;
             background: #0f3460;
             border-radius: 8px;
         }
-        .info-item label { display: block; color: #888; font-size: 12px; margin-bottom: 5px; }
-        .info-item .value { font-size: 20px; font-weight: bold; }
+        .info-item label { display: block; color: #888; font-size: 11px; margin-bottom: 4px; }
+        .info-item .value { font-size: 18px; font-weight: bold; }
         .profit { color: #00c853; }
         .loss { color: #ff5252; }
 
-        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .btn {
-            padding: 10px 20px;
+            padding: 8px 15px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s;
         }
         .btn-primary { background: #00d9ff; color: #1a1a2e; }
         .btn-danger { background: #ff5252; color: white; }
         .btn-success { background: #00c853; color: white; }
-        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        .btn:hover { opacity: 0.8; }
 
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #0f3460; }
-        th { background: #0f3460; color: #00d9ff; }
+        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #0f3460; font-size: 13px; }
+        th { background: #0f3460; color: #00d9ff; font-size: 12px; }
         tr:hover { background: #1f3460; }
 
+        .position-list, .trade-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .trade-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #0f3460;
+            gap: 10px;
+        }
+        .trade-item:last-child { border-bottom: none; }
+        .trade-time { font-size: 11px; color: #666; min-width: 70px; }
+        .trade-code { font-weight: bold; min-width: 60px; }
+        .trade-name { color: #888; font-size: 12px; flex: 1; }
+        .trade-dir { padding: 2px 8px; border-radius: 3px; font-size: 11px; }
+        .trade-dir.buy { background: #ffab00; color: #000; }
+        .trade-dir.sell { background: #00d9ff; color: #000; }
+        .trade-qty { min-width: 50px; text-align: right; }
+        .trade-price { min-width: 60px; text-align: right; }
+        .trade-amount { min-width: 70px; text-align: right; color: #00c853; }
+
         .log-container {
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
             background: #0f0f23;
             padding: 10px;
@@ -102,299 +126,351 @@
         .log-item.buy { color: #ffab00; }
         .log-item.sell { color: #00d9ff; }
 
-        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
         input {
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #0f3460;
             border-radius: 5px;
             background: #0f3460;
             color: white;
-            flex: 1;
+            font-size: 13px;
         }
+        input::placeholder { color: #666; }
 
-        .watchlist { display: flex; flex-wrap: wrap; gap: 10px; }
+        .watchlist { display: flex; flex-wrap: wrap; gap: 6px; }
         .watch-item {
-            padding: 5px 12px;
+            padding: 4px 10px;
             background: #0f3460;
-            border-radius: 15px;
+            border-radius: 12px;
             font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
+        .watch-item .code { font-weight: bold; }
+        .watch-item .name { color: #888; font-size: 11px; }
 
-        .review-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 15px;
+        /* 策略卡片 */
+        .strategy-card {
+            background: linear-gradient(135deg, #1a3a5c, #0f2847);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .strategy-title {
+            font-size: 13px;
+            color: #00d9ff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .strategy-content {
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+        .strategy-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #0f3460;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 2px;
         }
     </style>
 </head>
 <body>
     <div id="app">
         <div class="header">
-            <h1>📈 模拟炒股控制台</h1>
-            <span :class="['status-badge', status.running ? 'status-running' : 'status-stopped']">
-                {{ status.running ? '自动交易运行中' : '自动交易已停止' }}
+            <h1>📈 模拟炒股</h1>
+            <span id="status-badge" class="status-badge status-running">
+                加载中...
             </span>
         </div>
 
         <div class="container">
             <!-- 账户信息 -->
             <div class="card">
-                <h2>💰 账户概况</h2>
+                <h2>💰 账户</h2>
                 <div class="account-info">
                     <div class="info-item">
                         <label>总资产</label>
-                        <div class="value">¥{{ account.totalAssets.toFixed(2) }}</div>
+                        <div class="value" id="total-assets">-</div>
                     </div>
                     <div class="info-item">
                         <label>可用资金</label>
-                        <div class="value">¥{{ account.availableCash.toFixed(2) }}</div>
+                        <div class="value" id="available-cash">-</div>
                     </div>
                     <div class="info-item">
-                        <label>总盈亏</label>
-                        <div class="value" :class="account.profitLoss >= 0 ? 'profit' : 'loss'">
-                            {{ account.profitLoss >= 0 ? '+' : '' }}{{ account.profitLoss.toFixed(2) }} ({{ account.profitLossPercent.toFixed(2) }}%)
-                        </div>
+                        <label>盈亏</label>
+                        <div class="value" id="profit-loss">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 交易策略 -->
+            <div class="card">
+                <h2>🧠 交易策略</h2>
+                <div class="strategy-card">
+                    <div class="strategy-title">📊 股票: 中线均线埋伏策略</div>
+                    <div class="strategy-content">
+                        <span class="strategy-tag">不追高(涨幅≤5%)</span>
+                        <span class="strategy-tag">低位埋伏(跌幅>0%)</span>
+                        <span class="strategy-tag">成交活跃(>1万手)</span>
+                        <span class="strategy-tag">低价股优先(<20元)</span>
+                        <br>评分≥60分触发买入，每3天最多交易1次
+                    </div>
+                </div>
+                <div class="strategy-card">
+                    <div class="strategy-title">📌 基金: 智能定投策略</div>
+                    <div class="strategy-content">
+                        <span class="strategy-tag">每日14:50执行</span>
+                        <span class="strategy-tag">逢跌加仓(跌幅>1%)</span>
+                        <span class="strategy-tag">大跌大买(跌幅>3%)</span>
+                        <span class="strategy-tag">指数基金优先</span>
+                        <br>每次定投1000元，复利增长
                     </div>
                 </div>
             </div>
 
             <!-- 控制面板 -->
             <div class="card">
-                <h2>⚙️ 控制面板</h2>
+                <h2>⚙️ 控制</h2>
                 <div class="btn-group">
-                    <button class="btn btn-success" @click="startAuto" :disabled="status.running">▶ 启动自动交易</button>
-                    <button class="btn btn-danger" @click="stopAuto" :disabled="!status.running">⏹ 停止自动交易</button>
-                    <button class="btn btn-primary" @click="scanNow">🔍 立即扫描</button>
+                    <button class="btn btn-success" onclick="startAuto()">▶ 启动</button>
+                    <button class="btn btn-danger" onclick="stopAuto()">⏹ 停止</button>
+                    <button class="btn btn-primary" onclick="scanNow()">🔍 扫描</button>
                 </div>
-
-                <h3 style="margin: 15px 0 10px; color: #00d9ff;">手动交易</h3>
                 <div class="input-group">
-                    <input v-model="tradeCode" placeholder="股票代码 (如 600000)">
-                    <input v-model="tradeQty" type="number" placeholder="数量" style="flex: 0.3;">
-                    <button class="btn btn-primary" @click="buyStock">买入</button>
-                    <button class="btn btn-danger" @click="sellStock">卖出</button>
+                    <input id="trade-code" placeholder="股票代码" style="flex: 0.8;">
+                    <input id="trade-qty" type="number" placeholder="数量" value="100" style="flex: 0.4;">
+                    <button class="btn btn-primary" onclick="buyStock()">买入</button>
+                    <button class="btn btn-danger" onclick="sellStock()">卖出</button>
                 </div>
             </div>
 
-            <!-- 持仓列表 -->
+            <!-- 持仓 -->
             <div class="card">
-                <h2>📊 持仓 ({{ positions.length }})</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>代码</th>
-                            <th>名称</th>
-                            <th>数量</th>
-                            <th>成本价</th>
-                            <th>现价</th>
-                            <th>盈亏</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="p in positions" :key="p.id">
-                            <td>{{ p.code }}</td>
-                            <td>{{ p.name }}</td>
-                            <td>{{ p.quantity }}</td>
-                            <td>{{ p.costPrice.toFixed(2) }}</td>
-                            <td>{{ p.currentPrice?.toFixed(2) || '-' }}</td>
-                            <td :class="((p.currentPrice - p.costPrice) * p.quantity) >= 0 ? 'profit' : 'loss'">
-                                {{ ((p.currentPrice - p.costPrice) * p.quantity).toFixed(2) }}
-                            </td>
-                        </tr>
-                        <tr v-if="positions.length === 0">
-                            <td colspan="6" style="text-align: center; color: #888;">暂无持仓</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <h2>📊 持仓 (<span id="position-count">0</span>)</h2>
+                <div class="position-list" id="positions-body">
+                    <div style="text-align: center; color: #888; padding: 20px;">暂无持仓</div>
+                </div>
             </div>
 
             <!-- 交易记录 -->
-            <div class="card">
-                <h2>📜 交易记录 ({{ trades.length }})</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>时间</th>
-                            <th>代码</th>
-                            <th>方向</th>
-                            <th>数量</th>
-                            <th>价格</th>
-                            <th>金额</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="t in trades" :key="t.id">
-                            <td>{{ formatTime(t.tradeTime) }}</td>
-                            <td>{{ t.code }}</td>
-                            <td :class="t.direction === 'Buy' ? 'buy' : 'sell'">{{ t.direction === 'Buy' ? '买入' : '卖出' }}</td>
-                            <td>{{ t.quantity }}</td>
-                            <td>{{ t.price.toFixed(2) }}</td>
-                            <td>{{ t.amount.toFixed(2) }}</td>
-                        </tr>
-                        <tr v-if="trades.length === 0">
-                            <td colspan="6" style="text-align: center; color: #888;">暂无交易记录</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="card full">
+                <h2>📜 交易记录 (<span id="trade-count">0</span>)</h2>
+                <div class="trade-list" id="trades-body">
+                    <div style="text-align: center; color: #888; padding: 20px;">暂无记录</div>
+                </div>
             </div>
 
             <!-- 自选股 -->
             <div class="card">
                 <h2>⭐ 自选股</h2>
-                <div class="watchlist">
-                    <span v-for="code in status.stockWatchList" :key="code" class="watch-item">{{ code }}</span>
-                </div>
+                <div class="watchlist" id="stock-watchlist"></div>
             </div>
 
             <!-- 自选基 -->
             <div class="card">
-                <h2>📌 自选基金</h2>
-                <div class="watchlist">
-                    <span v-for="code in status.fundWatchList" :key="code" class="watch-item">{{ code }}</span>
-                </div>
+                <h2>📌 自选基</h2>
+                <div class="watchlist" id="fund-watchlist"></div>
             </div>
 
             <!-- 日志 -->
             <div class="card full">
-                <h2>📝 运行日志</h2>
-                <div class="log-container">
-                    <div v-for="(log, i) in logs" :key="i" :class="['log-item', getLogClass(log)]">
-                        {{ log }}
-                    </div>
-                </div>
+                <h2>📝 日志</h2>
+                <div class="log-container" id="log-container"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const { createApp, ref, onMounted, onUnmounted } = Vue;
+        const API_BASE = 'http://localhost:5000/api/trading';
 
-        createApp({
-            setup() {
-                const API_BASE = 'http://localhost:5000/api/trading';
+        // 股票名称映射
+        const stockNames = {
+            '600000': '浦发银行', '600036': '招商银行', '600519': '贵州茅台',
+            '000001': '平安银行', '000858': '五粮液', '300750': '宁德时代',
+            '601318': '中国平安', '601888': '中国中免'
+        };
+        const fundNames = {
+            '161039': '易方达上证50ETF', '510300': '沪深300ETF',
+            '159915': '创业板ETF', '161725': '中证白酒指数', '110022': '消费行业股票'
+        };
 
-                const account = ref({ totalAssets: 0, availableCash: 0, profitLoss: 0, profitLossPercent: 0 });
-                const positions = ref([]);
-                const trades = ref([]);
-                const logs = ref([]);
-                const status = ref({ running: false, stockWatchList: [], fundWatchList: [] });
+        function getStockName(code) {
+            return stockNames[code] || fundNames[code] || `股票${code}`;
+        }
 
-                const tradeCode = ref('');
-                const tradeQty = ref(100);
-
-                let refreshInterval = null;
-
-                const loadStatus = async () => {
-                    try {
-                        const res = await axios.get(API_BASE + '/status');
-                        status.value = res.data;
-                        account.value = res.data.account;
-                    } catch (e) { console.error('加载状态失败:', e); }
-                };
-
-                const loadPositions = async () => {
-                    try {
-                        const res = await axios.get(API_BASE + '/positions');
-                        positions.value = res.data;
-                    } catch (e) { console.error('加载持仓失败:', e); }
-                };
-
-                const loadTrades = async () => {
-                    try {
-                        const res = await axios.get(API_BASE + '/trades?limit=20');
-                        trades.value = res.data;
-                    } catch (e) { console.error('加载交易记录失败:', e); }
-                };
-
-                const loadLogs = async () => {
-                    try {
-                        const res = await axios.get(API_BASE + '/logs?limit=50');
-                        logs.value = res.data;
-                    } catch (e) { console.error('加载日志失败:', e); }
-                };
-
-                const refresh = async () => {
-                    await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs()]);
-                };
-
-                const startAuto = async () => {
-                    try {
-                        await axios.post(API_BASE + '/auto/start');
-                        addLog('已启动自动交易', 'success');
-                        await refresh();
-                    } catch (e) { addLog('启动失败: ' + e.message, 'error'); }
-                };
-
-                const stopAuto = async () => {
-                    try {
-                        await axios.post(API_BASE + '/auto/stop');
-                        addLog('已停止自动交易', 'success');
-                        await refresh();
-                    } catch (e) { addLog('停止失败: ' + e.message, 'error'); }
-                };
-
-                const scanNow = async () => {
-                    try {
-                        await axios.post(API_BASE + '/scan');
-                        addLog('市场扫描完成', 'success');
-                        await refresh();
-                    } catch (e) { addLog('扫描失败: ' + e.message, 'error'); }
-                };
-
-                const buyStock = async () => {
-                    if (!tradeCode.value) return;
-                    try {
-                        await axios.post(API_BASE + '/buy', { code: tradeCode.value, quantity: parseInt(tradeQty.value) });
-                        addLog('买入请求已发送: ' + tradeCode.value, 'buy');
-                        await refresh();
-                    } catch (e) { addLog('买入失败: ' + e.message, 'error'); }
-                };
-
-                const sellStock = async () => {
-                    if (!tradeCode.value) return;
-                    try {
-                        await axios.post(API_BASE + '/sell', { code: tradeCode.value, quantity: parseInt(tradeQty.value) });
-                        addLog('卖出请求已发送: ' + tradeCode.value, 'sell');
-                        await refresh();
-                    } catch (e) { addLog('卖出失败: ' + e.message, 'error'); }
-                };
-
-                const addLog = (msg, type = '') => {
-                    const time = new Date().toLocaleTimeString();
-                    logs.value.unshift(`[${time}] ${msg}`);
-                    if (logs.value.length > 100) logs.value.pop();
-                };
-
-                const getLogClass = (log) => {
-                    if (log.includes('错误') || log.includes('失败')) return 'error';
-                    if (log.includes('成功')) return 'success';
-                    if (log.includes('买入')) return 'buy';
-                    if (log.includes('卖出')) return 'sell';
-                    return '';
-                };
-
-                const formatTime = (time) => {
-                    return new Date(time).toLocaleString('zh-CN');
-                };
-
-                onMounted(() => {
-                    refresh();
-                    refreshInterval = setInterval(refresh, 10000); // 每10秒刷新
-                });
-
-                onUnmounted(() => {
-                    if (refreshInterval) clearInterval(refreshInterval);
-                });
-
-                return {
-                    account, positions, trades, logs, status,
-                    tradeCode, tradeQty,
-                    startAuto, stopAuto, scanNow, buyStock, sellStock,
-                    getLogClass, formatTime
-                };
+        async function api(url, options = {}) {
+            try {
+                const res = await fetch(API_BASE + url, options);
+                return await res.json();
+            } catch (e) {
+                return { error: e.message };
             }
-        }).mount('#app');
+        }
+
+        async function loadStatus() {
+            const statusData = await api('/status');
+
+            const badge = document.getElementById('status-badge');
+            if (statusData.autoTraderRunning) {
+                badge.textContent = '运行中';
+                badge.className = 'status-badge status-running';
+            } else {
+                badge.textContent = '已停止';
+                badge.className = 'status-badge status-stopped';
+            }
+
+            const acc = statusData.account;
+            document.getElementById('total-assets').textContent = '¥' + (acc.totalAssets || 0).toFixed(0);
+            document.getElementById('available-cash').textContent = '¥' + (acc.availableCash || 0).toFixed(0);
+
+            const pl = document.getElementById('profit-loss');
+            const plVal = acc.profitLossPercent || 0;
+            pl.textContent = (plVal >= 0 ? '+' : '') + plVal.toFixed(2) + '%';
+            pl.className = 'value ' + (plVal >= 0 ? 'profit' : 'loss');
+
+            // 自选股带名称
+            document.getElementById('stock-watchlist').innerHTML =
+                (statusData.stockWatchList || []).map(c =>
+                    `<span class="watch-item"><span class="code">${c}</span><span class="name">${getStockName(c)}</span></span>`
+                ).join('');
+
+            document.getElementById('fund-watchlist').innerHTML =
+                (statusData.fundWatchList || []).map(c =>
+                    `<span class="watch-item"><span class="code">${c}</span><span class="name">${getStockName(c)}</span></span>`
+                ).join('');
+        }
+
+        async function loadPositions() {
+            const data = await api('/positions');
+            document.getElementById('position-count').textContent = data.length || 0;
+
+            const tbody = document.getElementById('positions-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无持仓</div>';
+                return;
+            }
+
+            tbody.innerHTML = `<table>
+                <thead><tr><th>代码</th><th>名称</th><th>数量</th><th>成本</th><th>现价</th><th>盈亏</th></tr></thead>
+                <tbody>${data.map(p => {
+                    const pl = ((p.currentPrice || 0) - (p.costPrice || 0)) * (p.quantity || 0);
+                    return `<tr>
+                        <td>${p.code}</td>
+                        <td>${p.name}</td>
+                        <td>${p.quantity}</td>
+                        <td>${(p.costPrice || 0).toFixed(2)}</td>
+                        <td>${(p.currentPrice || 0).toFixed(2)}</td>
+                        <td class="${pl >= 0 ? 'profit' : 'loss'}">${pl.toFixed(0)}</td>
+                    </tr>`;
+                }).join('')}</tbody></table>`;
+        }
+
+        async function loadTrades() {
+            const data = await api('/trades?limit=50');
+            document.getElementById('trade-count').textContent = data.length || 0;
+
+            const container = document.getElementById('trades-body');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无记录</div>';
+                return;
+            }
+
+            container.innerHTML = data.reverse().map(t => {
+                const dir = t.direction === 'Buy';
+                const time = new Date(t.tradeTime);
+                return `<div class="trade-item">
+                    <span class="trade-time">${time.toLocaleDateString('zh-CN')}<br>${time.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}</span>
+                    <span class="trade-code">${t.code}</span>
+                    <span class="trade-name">${t.name}</span>
+                    <span class="trade-dir ${dir ? 'buy' : 'sell'}">${dir ? '买入' : '卖出'}</span>
+                    <span class="trade-qty">${t.quantity}股</span>
+                    <span class="trade-price">@${(t.price || 0).toFixed(2)}</span>
+                    <span class="trade-amount">¥${(t.amount || 0).toFixed(0)}</span>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadLogs() {
+            const data = await api('/logs?limit=30');
+            const container = document.getElementById('log-container');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="log-item">暂无日志</div>';
+                return;
+            }
+            container.innerHTML = data.map(log => {
+                let cls = '';
+                if (log.includes('错误') || log.includes('失败')) cls = 'error';
+                else if (log.includes('成功')) cls = 'success';
+                else if (log.includes('买入')) cls = 'buy';
+                else if (log.includes('卖出')) cls = 'sell';
+                return `<div class="log-item ${cls}">${log}</div>`;
+            }).join('');
+        }
+
+        async function refresh() {
+            await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs()]);
+        }
+
+        async function startAuto() {
+            await api('/auto/start', { method: 'POST' });
+            addLog('已启动自动交易', 'success');
+            await refresh();
+        }
+
+        async function stopAuto() {
+            await api('/auto/stop', { method: 'POST' });
+            addLog('已停止自动交易', 'success');
+            await refresh();
+        }
+
+        async function scanNow() {
+            await api('/scan', { method: 'POST' });
+            addLog('市场扫描完成', 'success');
+            await refresh();
+        }
+
+        async function buyStock() {
+            const code = document.getElementById('trade-code').value;
+            const qty = parseInt(document.getElementById('trade-qty').value) || 100;
+            if (!code) return;
+            const result = await api('/buy', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, quantity: qty })
+            });
+            addLog(result.success ? `买入 ${code} 成功` : `失败: ${result.message}`, result.success ? 'buy' : 'error');
+            await refresh();
+        }
+
+        async function sellStock() {
+            const code = document.getElementById('trade-code').value;
+            const qty = parseInt(document.getElementById('trade-qty').value) || 100;
+            if (!code) return;
+            const result = await api('/sell', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, quantity: qty })
+            });
+            addLog(result.success ? `卖出 ${code} 成功` : `失败: ${result.message}`, result.success ? 'sell' : 'error');
+            await refresh();
+        }
+
+        function addLog(msg, cls = '') {
+            const container = document.getElementById('log-container');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `log-item ${cls}`;
+            div.textContent = `[${time}] ${msg}`;
+            container.insertBefore(div, container.firstChild);
+            if (container.children.length > 50) container.removeChild(container.lastChild);
+        }
+
+        refresh();
+        setInterval(refresh, 10000);
     </script>
 </body>
 </html>

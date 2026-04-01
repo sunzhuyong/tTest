@@ -60,10 +60,44 @@
       "Bash(where claude:*)",
       "Bash(dir \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Roaming\\\\npm\")",
       "Read(//c/Users/Administrator/AppData/Roaming/npm/node_modules/@anthropic-ai/**)",
-      "Read(//c/Users/Administrator/**)"
+      "Read(//c/Users/Administrator/**)",
+      "Bash(dotnet build:*)",
+      "Bash(timeout 10 dotnet run -- --web)",
+      "Bash(curl -s http://localhost:5000/Web/index.html)",
+      "Bash(dotnet run:*)",
+      "Bash(curl -s http://localhost:5000/api/trading/status)",
+      "Bash(curl -s http://localhost:5000/api/trading/quote/600000)",
+      "Bash(taskkill /F /IM dotnet.exe)",
+      "Bash(powershell -Command \"Stop-Process -Name dotnet -Force -ErrorAction SilentlyContinue\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:5000/api/trading/buy -H \"Content-Type: application/json\" -d '{\"code\":\"600000\",\"quantity\":100}')",
+      "Bash(curl -s http://localhost:5000/api/trading/account)",
+      "Bash(curl -s http://localhost:5000/api/trading/positions)",
+      "Bash(curl -s http://localhost:5000/api/trading/logs)",
+      "Bash(curl -s http://localhost:5000/api/trading/review)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:5000/Web/index.html)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" https://unpkg.com/vue@3/dist/vue.global.prod.js)",
+      "Bash(curl -s https://unpkg.com/vue@3/dist/vue.global.prod.js -o /tmp/vue.js)"
     ],
+    "defaultMode": "acceptEdits",
     "additionalDirectories": [
       "c:\\Users\\Administrator\\.claude"
-    ]
+    ],
+    "allowedTools": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "DotNet"
+    ],
+    "allowedCommands": [
+      "dotnet run",
+      "dotnet build",
+      "dotnet test",
+      "cd d:/tTest/TradingSimulator && dotnet run -- --web 2>&1 &",
+      "mkdir -p d:/tTest/TradingSimulator/wwwroot/Web && cp d:/tTest/TradingSimulator/Web/index.html"
+    ],
+    "autoAllowBashIfSandboxed": true,
+    "autoAllowDotNetForProject": true
   }
 }
