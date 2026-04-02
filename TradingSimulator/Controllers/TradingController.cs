@@ -12,17 +12,20 @@ public class TradingController : ControllerBase
     private readonly MarketDataService _marketService;
     private readonly AutoTraderService _autoTrader;
     private readonly DatabaseService _db;
+    private readonly FeishuNotifyService _feishuNotify;
 
     public TradingController(
         TradingService tradingService,
         MarketDataService marketService,
         AutoTraderService autoTrader,
-        DatabaseService db)
+        DatabaseService db,
+        FeishuNotifyService feishuNotify)
     {
         _tradingService = tradingService;
         _marketService = marketService;
         _autoTrader = autoTrader;
         _db = db;
+        _feishuNotify = feishuNotify;
     }
 
     /// <summary>
@@ -105,6 +108,10 @@ public class TradingController : ControllerBase
             return NotFound(new { success = false, message = "股票代码不存在" });
 
         var result = _tradingService.Buy(request.Code, quote.Name, SecurityType.Stock, request.Quantity, quote.CurrentPrice);
+        if (result.Success)
+        {
+            _ = _feishuNotify.SendBuyNotification(request.Code, quote.Name, request.Quantity, quote.CurrentPrice, request.Quantity * quote.CurrentPrice);
+        }
         return Ok(new { success = result.Success, message = result.Message });
     }
 

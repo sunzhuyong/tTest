@@ -39,13 +39,16 @@ public class AutoTraderService
         "110022"  // 易方达消费行业股票
     };
 
+    private readonly FeishuNotifyService _feishuNotify;
+
     public event Action<string>? OnTradeExecuted;
     public event Action<string>? OnLogUpdated;
 
-    public AutoTraderService(TradingService tradingService, MarketDataService marketService)
+    public AutoTraderService(TradingService tradingService, MarketDataService marketService, FeishuNotifyService feishuNotify)
     {
         _tradingService = tradingService;
         _marketService = marketService;
+        _feishuNotify = feishuNotify;
         _strategies = new List<BaseStrategy>
         {
             new StockMidTermStrategy(),
@@ -188,6 +191,7 @@ public class AutoTraderService
                     {
                         AddLog($"[交易成功] 买入{quote.Name} 100股 @ {signal.CurrentPrice:N2}");
                         OnTradeExecuted?.Invoke(result.Message);
+                        _ = _feishuNotify.SendBuyNotification(code, quote.Name, 100, signal.CurrentPrice, 100 * signal.CurrentPrice);
                     }
                     else
                     {
@@ -245,6 +249,7 @@ public class AutoTraderService
                         {
                             AddLog($"[定投成功] 买入{quote.Name} {quantity}份 @ {signal.CurrentPrice:N2}");
                             OnTradeExecuted?.Invoke(result.Message);
+                            _ = _feishuNotify.SendBuyNotification(code, quote.Name, quantity, signal.CurrentPrice, quantity * signal.CurrentPrice);
                         }
                         else
                         {

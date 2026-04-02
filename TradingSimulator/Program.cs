@@ -48,11 +48,13 @@ static class Program
         var db = new DatabaseService();
         var market = new MarketDataService();
         var trading = new TradingService(db, market);
-        var autoTrader = new AutoTraderService(trading, market);
+        var feishuNotify = new FeishuNotifyService();
+        var autoTrader = new AutoTraderService(trading, market, feishuNotify);
 
         builder.Services.AddSingleton(db);
         builder.Services.AddSingleton(trading);
         builder.Services.AddSingleton(market);
+        builder.Services.AddSingleton(feishuNotify);
         builder.Services.AddSingleton(autoTrader);
 
         var app = builder.Build();

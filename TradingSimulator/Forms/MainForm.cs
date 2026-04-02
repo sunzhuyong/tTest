@@ -33,7 +33,7 @@ public partial class MainForm : Form
         _marketService = new Services.MarketDataService();
         _dbService = new Services.DatabaseService();
         _tradingService = new Services.TradingService(_dbService, _marketService);
-        _autoTrader = new AutoTraderService(_tradingService, _marketService);
+        _autoTrader = new AutoTraderService(_tradingService, _marketService, new Services.FeishuNotifyService());
 
         InitializeComponent();
         LoadData();
