@@ -40,6 +40,8 @@ public class AutoTraderService
     };
 
     private readonly FeishuNotifyService _feishuNotify;
+    private DailyReviewService? _reviewService;
+    private System.Windows.Forms.Timer? _reviewTimer;
 
     public event Action<string>? OnTradeExecuted;
     public event Action<string>? OnLogUpdated;
@@ -92,14 +94,69 @@ public class AutoTraderService
         // 基金定时器 - 14:50执行
         StartFundTimer();
 
+        // 复盘定时器 - 每天15:10执行（收市后）
+        StartReviewTimer();
+
         // 立即执行一次
         _ = ScanAndTradeAsync();
 
-        AddLog("已启动股票扫描 (每30分钟) 和基金定时 (14:50)");
+        AddLog("已启动股票扫描 (每30分钟) 和基金定时 (14:50) 和复盘 (15:10)");
     }
 
     /// <summary>
-    /// 停止自动交易
+    /// 设置复盘服务
+    /// </summary>
+    public void SetReviewService(DailyReviewService reviewService)
+    {
+        _reviewService = reviewService;
+    }
+
+    /// <summary>
+    /// 启动复盘定时器
+    /// </summary>
+    private void StartReviewTimer()
+    {
+        // 每分钟检查一次是否是15:10
+        _reviewTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
+        _reviewTimer.Tick += async (s, e) =>
+        {
+            // 检查是否收市后（15:10左右）
+            if (DateTime.Now.Hour == 15 && DateTime.Now.Minute == 10)
+            {
+                // 检查今天是否已复盘
+                var latest = _reviewService?.GetLatestReview();
+                if (latest == null || latest.Date.Date < DateTime.Today)
+                {
+                    await ExecuteDailyReviewAsync();
+                }
+            }
+        };
+        _reviewTimer.Start();
+    }
+
+    /// <summary>
+    /// 执行每日复盘
+    /// </summary>
+    public async Task ExecuteDailyReviewAsync()
+    {
+        if (_reviewService == null)
+        {
+            AddLog("复盘服务未初始化");
+            return;
+        }
+
+        AddLog("========== 开始每日复盘 ==========");
+        try
+        {
+            var review = await _reviewService.ExecuteDailyReviewAsync();
+            AddLog($"复盘完成: 总资产 ¥{review.TotalAssets:N2}, 盈亏 {review.TotalProfitLoss:N2}");
+            AddLog($"今日交易: {review.TradeCount}笔, 持仓: {review.PositionCount}只");
+        }
+        catch (Exception ex)
+        {
+            AddLog($"复盘失败: {ex.Message}");
+        }
+    }
     /// </summary>
     public void Stop()
     {

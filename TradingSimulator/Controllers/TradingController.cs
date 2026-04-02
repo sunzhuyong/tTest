@@ -13,19 +13,22 @@ public class TradingController : ControllerBase
     private readonly AutoTraderService _autoTrader;
     private readonly DatabaseService _db;
     private readonly FeishuNotifyService _feishuNotify;
+    private readonly DailyReviewService _reviewService;
 
     public TradingController(
         TradingService tradingService,
         MarketDataService marketService,
         AutoTraderService autoTrader,
         DatabaseService db,
-        FeishuNotifyService feishuNotify)
+        FeishuNotifyService feishuNotify,
+        DailyReviewService reviewService)
     {
         _tradingService = tradingService;
         _marketService = marketService;
         _autoTrader = autoTrader;
         _db = db;
         _feishuNotify = feishuNotify;
+        _reviewService = reviewService;
     }
 
     /// <summary>
@@ -221,6 +224,9 @@ public class TradingController : ControllerBase
         var positions = _tradingService.GetPositions();
         var account = _tradingService.GetAccount();
 
+        // 获取历史复盘记录
+        var reviewHistory = _reviewService.GetReviewHistory(30);
+
         // 按日期统计
         var dailyTrades = trades
             .GroupBy(t => t.TradeTime.Date)
@@ -242,8 +248,33 @@ public class TradingController : ControllerBase
             TotalProfitLoss = account.TotalProfitLoss,
             ProfitLossPercent = account.ProfitLossPercent,
             CurrentPositions = positions.Count,
-            DailyTrades = dailyTrades
+            DailyTrades = dailyTrades,
+            ReviewHistory = reviewHistory.Select(r => new
+            {
+                r.Date,
+                r.TotalAssets,
+                r.TotalProfitLoss,
+                r.ProfitLossPercent,
+                r.TradeCount,
+                r.TodayProfitLoss,
+                r.PositionCount,
+                r.WinningPositions,
+                r.LosingPositions,
+                r.TopWinner,
+                r.TopLoser,
+                r.StrategySuggestions
+            }).ToList()
         });
+    }
+
+    /// <summary>
+    /// 手动触发复盘
+    /// </summary>
+    [HttpPost("review/execute")]
+    public async Task<ActionResult<object>> ExecuteReview()
+    {
+        var review = await _reviewService.ExecuteDailyReviewAsync();
+        return Ok(new { success = true, message = "复盘完成", review });
     }
 }
 
