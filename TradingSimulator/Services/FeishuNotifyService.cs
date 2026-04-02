@@ -22,7 +22,12 @@ public class FeishuNotifyService
     /// </summary>
     public async Task SendMessage(string title, string message)
     {
-        if (!_enabled) return;
+        Console.WriteLine($"[飞书DEBUG] SendMessage called: {title}");
+        if (!_enabled)
+        {
+            Console.WriteLine("[飞书DEBUG] 飞书通知未启用，跳过");
+            return;
+        }
 
         try
         {
@@ -33,12 +38,13 @@ public class FeishuNotifyService
             };
 
             var json = JsonConvert.SerializeObject(data);
+            Console.WriteLine($"[飞书DEBUG] 发送内容: {json.Substring(0, Math.Min(100, json.Length))}...");
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync(_webhookUrl, content);
             var result = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine($"[飞书通知] {title} - 发送结果: {result}");
+            Console.WriteLine($"[飞书通知] {title} - HTTP状态: {(int)response.StatusCode}, 发送结果: {result}");
         }
         catch (Exception ex)
         {
@@ -138,6 +144,24 @@ public class FeishuNotifyService
             """;
 
         await SendMessage("【每日报告】", message);
+    }
+
+    /// <summary>
+    /// 发送扫描报告
+    /// </summary>
+    public async Task SendScanReport(int stockCount, int fundCount, int buySignals, int sellSignals, string summary)
+    {
+        var message = $"""
+            🔍 市场扫描报告
+            ─────────────────
+            📊 自选股: {stockCount}只
+            📊 自选基: {fundCount}只
+            📈 买入信号: {buySignals}个
+            📉 卖出信号: {sellSignals}个
+            {"".PadRight(20, '─')}
+            {summary}
+            """;
+        await SendMessage("【扫描报告】", message);
     }
 }
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FaceRecognitionDemo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+74d0c644b446681baf70171d4df189f617e5dbb8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c368f7b012be9a7a67a918fd58686c8ca38ee7e8")]
 [assembly: System.Reflection.AssemblyProductAttribute("FaceRecognitionDemo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FaceRecognitionDemo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

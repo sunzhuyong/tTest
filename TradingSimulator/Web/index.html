@@ -179,6 +179,15 @@
             font-size: 11px;
             margin: 2px;
         }
+
+        .review-list { max-height: 300px; overflow-y: auto; }
+        .review-item { background: #0f3460; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .review-date { color: #00d9ff; font-weight: bold; font-size: 14px; }
+        .review-stats { display: flex; gap: 15px; margin: 8px 0; flex-wrap: wrap; }
+        .review-stat { font-size: 12px; }
+        .review-suggestions { font-size: 12px; color: #aaa; line-height: 1.5; }
+        .review-win { color: #ff5252; }
+        .review-loss { color: #00c853; }
     </style>
 </head>
 <body>
@@ -279,6 +288,14 @@
                 <div class="watchlist" id="fund-watchlist"></div>
             </div>
 
+            <!-- 复盘记录 -->
+            <div class="card full">
+                <h2>📋 复盘记录 <button class="btn btn-primary" style="margin-left:10px;padding:4px 10px;font-size:12px;" onclick="executeReview()">立即复盘</button></h2>
+                <div class="review-list" id="review-container">
+                    <div style="text-align: center; color: #888; padding: 20px;">暂无复盘记录</div>
+                </div>
+            </div>
+
             <!-- 日志 -->
             <div class="card full">
                 <h2>📝 日志</h2>
@@ -294,7 +311,8 @@
         const stockNames = {
             '600000': '浦发银行', '600036': '招商银行', '600519': '贵州茅台',
             '000001': '平安银行', '000858': '五粮液', '300750': '宁德时代',
-            '601318': '中国平安', '601888': '中国中免'
+            '601318': '中国平安', '601888': '中国中免',
+            '601985': '中国核电', '600175': '中核技术', '600875': '东方电气', '601727': '上海电气'
         };
         const fundNames = {
             '161039': '易方达上证50ETF', '510300': '沪深300ETF',
@@ -420,7 +438,42 @@
         }
 
         async function refresh() {
-            await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs()]);
+            await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs(), loadReviews()]);
+        }
+
+        async function loadReviews() {
+            const data = await api('/review');
+            const container = document.getElementById('review-container');
+            if (!data.reviewHistory || data.reviewHistory.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无复盘记录</div>';
+                return;
+            }
+            container.innerHTML = data.reviewHistory.map(r => {
+                const plClass = r.totalProfitLoss >= 0 ? 'review-win' : 'review-loss';
+                const plText = r.totalProfitLoss >= 0 ? '+' : '';
+                return `<div class="review-item">
+                    <div class="review-date">${r.date}</div>
+                    <div class="review-stats">
+                        <span class="review-stat">💰 总资产: ¥${r.totalAssets.toFixed(0)}</span>
+                        <span class="review-stat ${plClass}">${plText}¥${r.totalProfitLoss.toFixed(0)} (${r.profitLossPercent.toFixed(2)}%)</span>
+                        <span class="review-stat">📊 持仓: ${r.positionCount}只</span>
+                        <span class="review-stat">📈 交易: ${r.tradeCount}笔</span>
+                    </div>
+                    <div class="review-stats">
+                        <span class="review-stat review-win">✅ 盈利: ${r.winningPositions}只</span>
+                        <span class="review-stat review-loss">❌ 亏损: ${r.losingPositions}只</span>
+                    </div>
+                    <div class="review-suggestions">${r.strategySuggestions || ''}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function executeReview() {
+            if (!confirm('确定要立即执行复盘吗？')) return;
+            addLog('正在执行复盘...', 'success');
+            await api('/review/execute', { method: 'POST' });
+            addLog('复盘已完成', 'success');
+            await loadReviews();
         }
 
         async function startAuto() {

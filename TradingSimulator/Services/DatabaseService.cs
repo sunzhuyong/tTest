@@ -87,7 +87,7 @@ public class DatabaseService
 
         if (count == 0)
         {
-            var insertSql = "INSERT INTO AccountSettings (Id, InitialCapital, AvailableCash) VALUES (1, 100000, 100000)";
+            var insertSql = "INSERT INTO AccountSettings (Id, InitialCapital, AvailableCash) VALUES (1, 30000, 30000)";
             using var insertCmd = new SqliteCommand(insertSql, connection);
             insertCmd.ExecuteNonQuery();
         }
