@@ -54,6 +54,7 @@ public class DatabaseService
                 Quantity REAL NOT NULL,
                 Amount REAL NOT NULL,
                 Commission REAL NOT NULL,
+                ProfitLoss REAL NOT NULL DEFAULT 0,
                 TradeTime TEXT NOT NULL
             )";
 
@@ -254,8 +255,8 @@ public class DatabaseService
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        var sql = @"INSERT INTO TradeRecords (Code, Name, Type, Direction, Price, Quantity, Amount, Commission, TradeTime)
-                    VALUES (@Code, @Name, @Type, @Dir, @Price, @Qty, @Amount, @Comm, @Time)";
+        var sql = @"INSERT INTO TradeRecords (Code, Name, Type, Direction, Price, Quantity, Amount, Commission, ProfitLoss, TradeTime)
+                    VALUES (@Code, @Name, @Type, @Dir, @Price, @Qty, @Amount, @Comm, @PL, @Time)";
 
         using var cmd = new SqliteCommand(sql, connection);
         cmd.Parameters.AddWithValue("@Code", record.Code);
@@ -266,6 +267,7 @@ public class DatabaseService
         cmd.Parameters.AddWithValue("@Qty", (double)record.Quantity);
         cmd.Parameters.AddWithValue("@Amount", (double)record.Amount);
         cmd.Parameters.AddWithValue("@Comm", (double)record.Commission);
+        cmd.Parameters.AddWithValue("@PL", (double)record.ProfitLoss);
         cmd.Parameters.AddWithValue("@Time", record.TradeTime.ToString("yyyy-MM-dd HH:mm:ss"));
         cmd.ExecuteNonQuery();
     }
@@ -286,7 +288,7 @@ public class DatabaseService
 
         while (reader.Read())
         {
-            records.Add(new TradeRecord
+            var record = new TradeRecord
             {
                 Id = reader.GetInt32(0),
                 Code = reader.GetString(1),
@@ -297,8 +299,10 @@ public class DatabaseService
                 Quantity = (decimal)reader.GetDouble(6),
                 Amount = (decimal)reader.GetDouble(7),
                 Commission = (decimal)reader.GetDouble(8),
-                TradeTime = DateTime.Parse(reader.GetString(9))
-            });
+                ProfitLoss = reader.GetDouble(9) > 0 ? (decimal)reader.GetDouble(9) : (decimal)reader.GetDouble(9),
+                TradeTime = DateTime.Parse(reader.GetString(10))
+            };
+            records.Add(record);
         }
 
         return records;

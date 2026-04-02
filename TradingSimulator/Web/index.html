@@ -109,7 +109,8 @@
         .trade-dir.sell { background: #00d9ff; color: #000; }
         .trade-qty { min-width: 50px; text-align: right; }
         .trade-price { min-width: 60px; text-align: right; }
-        .trade-amount { min-width: 70px; text-align: right; color: #00c853; }
+        .trade-amount { min-width: 70px; text-align: right; color: #888; }
+        .trade-pl { min-width: 70px; text-align: right; font-weight: bold; }
 
         .log-container {
             max-height: 200px;
@@ -384,6 +385,10 @@
             container.innerHTML = data.reverse().map(t => {
                 const dir = t.direction === 'Buy';
                 const time = new Date(t.tradeTime);
+                // 计算盈亏：如果当前有持仓，显示持仓盈亏；否则显示手续费
+                const pl = t.profitLoss !== undefined ? t.profitLoss : (t.amount ? -t.commission : 0);
+                const plClass = pl >= 0 ? 'profit' : 'loss';
+                const plText = pl >= 0 ? '+' : '';
                 return `<div class="trade-item">
                     <span class="trade-time">${time.toLocaleDateString('zh-CN')}<br>${time.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}</span>
                     <span class="trade-code">${t.code}</span>
@@ -392,6 +397,7 @@
                     <span class="trade-qty">${t.quantity}股</span>
                     <span class="trade-price">@${(t.price || 0).toFixed(2)}</span>
                     <span class="trade-amount">¥${(t.amount || 0).toFixed(0)}</span>
+                    <span class="trade-pl ${plClass}">${plText}¥${pl.toFixed(0)}</span>
                 </div>`;
             }).join('');
         }

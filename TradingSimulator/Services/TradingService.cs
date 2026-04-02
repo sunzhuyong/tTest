@@ -62,6 +62,7 @@ public class TradingService
             Quantity = quantity,
             Amount = amount,
             Commission = commission,
+            ProfitLoss = -commission,  // 买入时盈亏为负（手续费）
             TradeTime = DateTime.Now
         };
         _db.AddTradeRecord(record);
@@ -103,6 +104,7 @@ public class TradingService
         _db.ReducePosition(code, quantity);
 
         // 添加交易记录
+        var profitLoss = (price - position.CostPrice) * quantity;
         var record = new TradeRecord
         {
             Code = code,
@@ -113,11 +115,10 @@ public class TradingService
             Quantity = quantity,
             Amount = amount,
             Commission = commission,
+            ProfitLoss = profitLoss - commission,  // 卖出盈亏减去手续费
             TradeTime = DateTime.Now
         };
         _db.AddTradeRecord(record);
-
-        var profitLoss = (price - position.CostPrice) * quantity;
         var profitText = profitLoss >= 0 ? $"盈利 {profitLoss:N2}" : $"亏损 {Math.Abs(profitLoss):N2}";
 
         return (true, $"卖出成功！\n证券: {position.Name} ({code})\n数量: {quantity}\n价格: {price:N2}\n金额: {amount:N2}\n手续费: {commission:N2}\n净得: {netAmount:N2}\n{profitText}");

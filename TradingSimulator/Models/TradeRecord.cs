@@ -14,5 +14,6 @@ public class TradeRecord
     public decimal Quantity { get; set; }           // 成交数量
     public decimal Amount { get; set; }             // 成交金额
     public decimal Commission { get; set; }          // 手续费
+    public decimal ProfitLoss { get; set; }          // 本次交易盈亏
     public DateTime TradeTime { get; set; }         // 交易时间
 }
