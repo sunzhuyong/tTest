@@ -133,6 +133,19 @@ public class AutoTraderService
     {
         if (!_isRunning) return;
 
+        // 检查是否在交易时间（A股开盘时段）
+        if (!MarketTime.IsTradingTime())
+        {
+            var nextTime = MarketTime.GetNextTradingTime();
+            var reason = MarketTime.IsTradingDay(DateTime.Now)
+                ? "当前不在交易时间 (9:30-11:30, 13:00-15:00)"
+                : "今日不是交易日";
+            AddLog($"[跳过] {reason}");
+            if (nextTime.HasValue)
+                AddLog($"[下次交易时间] {nextTime:MM-dd HH:mm}");
+            return;
+        }
+
         AddLog(">>> 开始扫描市场...");
         AddLog($"股票自选: {string.Join(", ", _stockWatchList)}");
         AddLog($"基金自选: {string.Join(", ", _fundWatchList)}");
@@ -191,7 +204,12 @@ public class AutoTraderService
                     {
                         AddLog($"[交易成功] 买入{quote.Name} 100股 @ {signal.CurrentPrice:N2}");
                         OnTradeExecuted?.Invoke(result.Message);
-                        _ = _feishuNotify.SendBuyNotification(code, quote.Name, 100, signal.CurrentPrice, 100 * signal.CurrentPrice);
+                        _ = _feishuNotify.SendBuyNotification(
+                            code, quote.Name, 100, signal.CurrentPrice, 100 * signal.CurrentPrice,
+                            signal.Reason, signal.Score,
+                            _tradingService.GetAccount().AvailableCash,
+                            _tradingService.GetAccount().TotalAssets,
+                            _tradingService.GetAccount().TotalProfitLoss);
                     }
                     else
                     {
@@ -249,7 +267,12 @@ public class AutoTraderService
                         {
                             AddLog($"[定投成功] 买入{quote.Name} {quantity}份 @ {signal.CurrentPrice:N2}");
                             OnTradeExecuted?.Invoke(result.Message);
-                            _ = _feishuNotify.SendBuyNotification(code, quote.Name, quantity, signal.CurrentPrice, quantity * signal.CurrentPrice);
+                            _ = _feishuNotify.SendBuyNotification(
+                                code, quote.Name, quantity, signal.CurrentPrice, quantity * signal.CurrentPrice,
+                                signal.Reason, signal.Score,
+                                _tradingService.GetAccount().AvailableCash,
+                                _tradingService.GetAccount().TotalAssets,
+                                _tradingService.GetAccount().TotalProfitLoss);
                         }
                         else
                         {

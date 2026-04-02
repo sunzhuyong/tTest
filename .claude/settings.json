@@ -78,7 +78,9 @@
       "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:5000/Web/index.html)",
       "Bash(curl -s -o nul -w \"%{http_code}\" https://unpkg.com/vue@3/dist/vue.global.prod.js)",
       "Bash(curl -s https://unpkg.com/vue@3/dist/vue.global.prod.js -o /tmp/vue.js)",
-      "Bash(powershell -Command \"Stop-Process -Name 'TradingSimulator' -Force -ErrorAction SilentlyContinue; Stop-Process -Name dotnet -Force -ErrorAction SilentlyContinue\")"
+      "Bash(powershell -Command \"Stop-Process -Name 'TradingSimulator' -Force -ErrorAction SilentlyContinue; Stop-Process -Name dotnet -Force -ErrorAction SilentlyContinue\")",
+      "Bash(curl -s -X POST http://localhost:5000/api/trading/buy -H \"Content-Type: application/json\" -d '{\"code\":\"600036\",\"quantity\":100}')",
+      "Bash(powershell -Command \"Get-Process -Name 'TradingSimulator' -ErrorAction SilentlyContinue | Stop-Process -Force\")"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [

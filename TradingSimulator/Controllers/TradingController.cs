@@ -101,7 +101,7 @@ public class TradingController : ControllerBase
     /// 手动买入
     /// </summary>
     [HttpPost("buy")]
-    public ActionResult<object> Buy([FromBody] TradeRequest request)
+    public async Task<ActionResult<object>> Buy([FromBody] TradeRequest request)
     {
         var quote = _marketService.GetStockQuoteAsync(request.Code).Result;
         if (quote == null)
@@ -110,7 +110,11 @@ public class TradingController : ControllerBase
         var result = _tradingService.Buy(request.Code, quote.Name, SecurityType.Stock, request.Quantity, quote.CurrentPrice);
         if (result.Success)
         {
-            _ = _feishuNotify.SendBuyNotification(request.Code, quote.Name, request.Quantity, quote.CurrentPrice, request.Quantity * quote.CurrentPrice);
+            var account = _tradingService.GetAccount();
+            _ = _feishuNotify.SendBuyNotification(
+                request.Code, quote.Name, (int)request.Quantity, quote.CurrentPrice, (int)request.Quantity * quote.CurrentPrice,
+                "手动买入", 100,
+                account.AvailableCash, account.TotalAssets, account.TotalProfitLoss);
         }
         return Ok(new { success = result.Success, message = result.Message });
     }
@@ -127,6 +131,14 @@ public class TradingController : ControllerBase
             return NotFound(new { success = false, message = "股票代码不存在" });
 
         var result = _tradingService.Sell(request.Code, request.Quantity, quote.CurrentPrice);
+        if (result.Success)
+        {
+            var account = _tradingService.GetAccount();
+            _ = _feishuNotify.SendSellNotification(
+                request.Code, quote.Name, (int)request.Quantity, quote.CurrentPrice, (int)request.Quantity * quote.CurrentPrice,
+                "手动卖出", 0,
+                account.AvailableCash, account.TotalAssets, account.TotalProfitLoss);
+        }
         return Ok(new { success = result.Success, message = result.Message });
     }
 
