@@ -25,6 +25,10 @@ public class TradingService
         if (quantity <= 0)
             return (false, "买入数量必须大于0");
 
+        // A股最少买入100股
+        if (type == SecurityType.Stock && quantity < 100)
+            return (false, "A股股票最少买入100股");
+
         var account = _db.GetAccount();
         var amount = quantity * price;
         var commission = amount * CommissionRate;
@@ -77,6 +81,10 @@ public class TradingService
     {
         if (quantity <= 0)
             return (false, "卖出数量必须大于0");
+
+        // A股必须100股整数倍
+        if (quantity % 100 != 0)
+            return (false, "A股卖出数量必须是100的整数倍");
 
         var positions = _db.GetPositions();
         var position = positions.FirstOrDefault(p => p.Code == code);
@@ -196,7 +204,7 @@ public class TradingService
     /// <summary>
     /// 重置账户
     /// </summary>
-    public void ResetAccount(decimal initialCapital = 100000)
+    public void ResetAccount(decimal initialCapital = 30000)
     {
         _db.ResetAccount(initialCapital);
     }

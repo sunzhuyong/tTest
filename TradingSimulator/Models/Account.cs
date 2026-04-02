@@ -5,7 +5,7 @@ namespace TradingSimulator.Models;
 /// </summary>
 public class Account
 {
-    public decimal InitialCapital { get; set; } = 100000m;  // 初始资金 10万
+    public decimal InitialCapital { get; set; } = 30000m;  // 初始资金 3万
     public decimal AvailableCash { get; set; }              // 可用资金
     public decimal MarketValue { get; set; }                // 持仓市值
     public decimal TotalAssets => AvailableCash + MarketValue;  // 总资产

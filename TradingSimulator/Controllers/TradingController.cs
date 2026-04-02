@@ -14,6 +14,8 @@ public class TradingController : ControllerBase
     private readonly DatabaseService _db;
     private readonly FeishuNotifyService _feishuNotify;
     private readonly DailyReviewService _reviewService;
+    private readonly StrategyIterationService _strategyIterationService;
+    private readonly MarketSummaryService _marketSummaryService;
 
     public TradingController(
         TradingService tradingService,
@@ -21,7 +23,9 @@ public class TradingController : ControllerBase
         AutoTraderService autoTrader,
         DatabaseService db,
         FeishuNotifyService feishuNotify,
-        DailyReviewService reviewService)
+        DailyReviewService reviewService,
+        StrategyIterationService strategyIterationService,
+        MarketSummaryService marketSummaryService)
     {
         _tradingService = tradingService;
         _marketService = marketService;
@@ -29,6 +33,8 @@ public class TradingController : ControllerBase
         _db = db;
         _feishuNotify = feishuNotify;
         _reviewService = reviewService;
+        _strategyIterationService = strategyIterationService;
+        _marketSummaryService = marketSummaryService;
     }
 
     /// <summary>
@@ -276,6 +282,75 @@ public class TradingController : ControllerBase
         var review = await _reviewService.ExecuteDailyReviewAsync();
         return Ok(new { success = true, message = "复盘完成", review });
     }
+
+    /// <summary>
+    /// 获取策略迭代历史
+    /// </summary>
+    [HttpGet("strategy/history")]
+    public ActionResult<object> GetStrategyHistory([FromQuery] int days = 90)
+    {
+        var history = _strategyIterationService.GetHistory(days);
+        var latest = _strategyIterationService.GetLatest();
+
+        return Ok(new
+        {
+            History = history.Select(h => new
+            {
+                h.Date,
+                h.Type,
+                h.BeforeParams,
+                h.AfterParams,
+                h.Reason,
+                h.Result,
+                h.CreatedAt
+            }).ToList(),
+            Latest = latest != null ? new
+            {
+                latest.Type,
+                latest.Reason,
+                latest.Result
+            } : null
+        });
+    }
+
+    /// <summary>
+    /// 手动记录策略调整
+    /// </summary>
+    [HttpPost("strategy/record")]
+    public ActionResult<object> RecordStrategy([FromBody] StrategyRecordRequest request)
+    {
+        _strategyIterationService.RecordIteration(
+            request.Type,
+            request.BeforeParams,
+            request.AfterParams,
+            request.Reason,
+            request.Result);
+
+        return Ok(new { success = true, message = "策略调整已记录" });
+    }
+
+    /// <summary>
+    /// 获取市场总结
+    /// </summary>
+    [HttpGet("market/summary")]
+    public async Task<ActionResult<object>> GetMarketSummary([FromQuery] bool isMorning = false)
+    {
+        var summary = await _marketSummaryService.GenerateSummaryAsync(isMorning);
+        return Ok(summary);
+    }
+
+    /// <summary>
+    /// 手动发送市场总结
+    /// </summary>
+    [HttpPost("market/summary/send")]
+    public async Task<ActionResult<object>> SendMarketSummary([FromQuery] bool isMorning = false)
+    {
+        var summary = await _marketSummaryService.GenerateSummaryAsync(isMorning);
+        await _feishuNotify.SendMessage(
+            isMorning ? "【午间市场总结】" : "【收盘市场总结】",
+            summary.Summary);
+        return Ok(new { success = true, message = "市场总结已发送", summary });
+    }
 }
 
 public class TradeRequest
@@ -288,4 +363,13 @@ public class SellRequest
 {
     public string Code { get; set; } = "";
     public decimal Quantity { get; set; }
+}
+
+public class StrategyRecordRequest
+{
+    public string Type { get; set; } = "";
+    public object BeforeParams { get; set; } = new { };
+    public object AfterParams { get; set; } = new { };
+    public string Reason { get; set; } = "";
+    public string? Result { get; set; }
 }

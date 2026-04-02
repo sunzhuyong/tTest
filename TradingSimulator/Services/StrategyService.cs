@@ -49,30 +49,36 @@ public class StockMidTermStrategy : BaseStrategy
         if (security.Type != SecurityType.Stock)
             return null;
 
-        // 模拟技术分析（实际需要历史K线数据）
-        // 中线策略：不追高，涨幅大于5%不考虑
-        if (security.ChangePercent > 5)
+        // 激进策略：只要不是暴涨暴跌都可以考虑
+        // 涨幅超过10%不追高
+        if (security.ChangePercent > 10)
             return null;
 
-        // 跌幅过大可能是陷阱
-        if (security.ChangePercent < -8)
-            return null;
+        // 跌幅超过10%可能有风险，但如果是建仓机会也可以考虑
+        // if (security.ChangePercent < -10)
+        //     return null;
 
         var score = 50m;
 
-        // 根据跌幅给加分（越接近0越好，埋伏低位）
-        var changeScore = (5 - Math.Abs(security.ChangePercent)) * 5;
+        // 根据涨跌给分（接近0的更好）
+        var changeScore = (8 - Math.Abs(security.ChangePercent)) * 4;
         score += changeScore;
 
-        // 根据成交量给加分
-        if (security.Volume > 10000)
-            score += 10;
-
-        // 低价股更适合中线埋伏
-        if (security.CurrentPrice < 20)
+        // 有成交量就加分
+        if (security.Volume > 5000)
             score += 15;
 
-        if (score >= 60)
+        // 低价股更适合短线
+        if (security.CurrentPrice < 50)
+            score += 10;
+
+        // 核电、AI等热门板块加分
+        if (security.Code == "601985" || security.Code == "601727" ||
+            security.Code == "300033" || security.Code == "300229")
+            score += 10;
+
+        // 激进模式：评分50以上就买入
+        if (score >= 50)
         {
             return new StrategySignal
             {
@@ -82,7 +88,7 @@ public class StockMidTermStrategy : BaseStrategy
                 StrategyName = Name,
                 SignalType = "Buy",
                 Score = score,
-                Reason = $"中线埋伏策略: 评分{score:N0}，当前跌幅{security.ChangePercent:N2}%，适合逢低布局",
+                Reason = $"激进策略: 评分{score:N0}，涨跌{security.ChangePercent:N2}%，符合买入条件",
                 CurrentPrice = security.CurrentPrice,
                 ChangePercent = security.ChangePercent,
                 SignalTime = DateTime.Now
@@ -94,8 +100,8 @@ public class StockMidTermStrategy : BaseStrategy
 
     public override bool ShouldTrade(List<Position> positions, List<TradeRecord> recentTrades)
     {
-        // 最近3天没有交易过
-        var recent = recentTrades.Where(t => t.TradeTime > DateTime.Now.AddDays(-3)).ToList();
+        // 激进模式：只要最近15分钟没交易就可以
+        var recent = recentTrades.Where(t => t.TradeTime > DateTime.Now.AddMinutes(-15)).ToList();
         return recent.Count == 0;
     }
 }

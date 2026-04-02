@@ -289,10 +289,60 @@
             </div>
 
             <!-- 复盘记录 -->
-            <div class="card full">
+            <div class="card">
                 <h2>📋 复盘记录 <button class="btn btn-primary" style="margin-left:10px;padding:4px 10px;font-size:12px;" onclick="executeReview()">立即复盘</button></h2>
                 <div class="review-list" id="review-container">
                     <div style="text-align: center; color: #888; padding: 20px;">暂无复盘记录</div>
+                </div>
+            </div>
+
+            <!-- 策略迭代 -->
+            <div class="card">
+                <h2>🔧 策略迭代</h2>
+                <div class="review-list" id="strategy-container">
+                    <div style="text-align: center; color: #888; padding: 20px;">暂无策略调整记录</div>
+                </div>
+            </div>
+
+            <!-- 市场总结 -->
+            <div class="card full">
+                <h2>📊 市场总结
+                    <button class="btn btn-primary" style="margin-left:10px;padding:4px 10px;font-size:12px;" onclick="loadMarketSummary(true)">上午盘</button>
+                    <button class="btn btn-primary" style="margin-left:5px;padding:4px 10px;font-size:12px;" onclick="loadMarketSummary(false)">下午盘</button>
+                </h2>
+                <div class="review-list" id="market-summary-container">
+                    <div style="text-align: center; color: #888; padding: 20px;">暂无市场总结</div>
+                </div>
+            </div>
+
+            <!-- 定时任务 -->
+            <div class="card full">
+                <h2>⏰ 定时任务</h2>
+                <div class="review-list" id="timer-container">
+                    <div class="review-item">
+                        <div class="review-stats">
+                            <span class="review-stat">📡 股票扫描: <span style="color: #00c853;">运行中</span></span>
+                            <span class="review-stat">⏱ 每10分钟触发一次</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <div class="review-stats">
+                            <span class="review-stat">📡 基金定投: <span style="color: #00c853;">运行中</span></span>
+                            <span class="review-stat">⏱ 每天14:50执行</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <div class="review-stats">
+                            <span class="review-stat">📡 市场总结: <span style="color: #00c853;">运行中</span></span>
+                            <span class="review-stat">⏱ 午间11:30 / 收盘15:00</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <div class="review-stats">
+                            <span class="review-stat">📡 每日复盘: <span style="color: #00c853;">运行中</span></span>
+                            <span class="review-stat">⏱ 每天15:10执行</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -309,9 +359,38 @@
 
         // 股票名称映射
         const stockNames = {
-            '600000': '浦发银行', '600036': '招商银行', '600519': '贵州茅台',
-            '000001': '平安银行', '000858': '五粮液', '300750': '宁德时代',
-            '601318': '中国平安', '601888': '中国中免'
+            // 银行
+            '600000': '浦发银行', '600036': '招商银行', '000001': '平安银行',
+            '601398': '工商银行', '601939': '建设银行',
+            // 白酒消费
+            '600519': '贵州茅台', '000858': '五粮液', '601888': '中国中免',
+            // 新能源
+            '300750': '宁德时代', '601318': '中国平安', '600850': '华东医药',
+            // 核电
+            '601985': '中国核电', '600175': '中核技术', '600875': '东方电气', '601727': '上海电气',
+            // 半导体/芯片
+            '603986': '兆易创新', '603160': '汇顶科技', '603501': '北京君正',
+            // 医药医疗
+            '600276': '恒瑞医药', '300760': '迈瑞医疗', '002044': '江苏国泰', '300015': '爱尔眼科',
+            // 房地产
+            '000002': '万科A', '600048': '保利发展', '601155': '新城控股',
+            // 军工-航空航天
+            '600893': '航发动力', '600038': '中直股份', '000547': '航天发展',
+            '600879': '航天机电', '600271': '航天信息', '600118': '中国卫星',
+            // 机器人
+            '300124': '汇川技术', '000333': '美的集团', '600835': '上海机电',
+            '002139': '拓普集团', '300005': '聚龙股份',
+            // AI应用
+            '300033': '同花顺', '300229': '拓尔思', '300459': '汤姆猫',
+            '300467': '迅游科技', '002195': '二三四五', '002027': '分众传媒',
+            // 科技互联网
+            '600570': '恒生电子', '002410': '广联达',
+            // 煤炭
+            '601001': '大同煤业', '601088': '陕西煤业', '600395': '盘江股份',
+            // 钢铁
+            '600019': '宝钢股份', '600581': '南钢股份',
+            // 化工
+            '600309': '万华化学', '600096': '云天化'
         };
         const fundNames = {
             '161039': '易方达上证50ETF', '510300': '沪深300ETF',
@@ -437,7 +516,7 @@
         }
 
         async function refresh() {
-            await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs(), loadReviews()]);
+            await Promise.all([loadStatus(), loadPositions(), loadTrades(), loadLogs(), loadReviews(), loadStrategy(), loadMarketSummary()]);
         }
 
         async function loadReviews() {
@@ -465,6 +544,64 @@
                     <div class="review-suggestions">${r.strategySuggestions || ''}</div>
                 </div>`;
             }).join('');
+        }
+
+        async function loadStrategy() {
+            const data = await api('/strategy/history');
+            const container = document.getElementById('strategy-container');
+            if (!data.history || data.history.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无策略调整记录</div>';
+                return;
+            }
+            container.innerHTML = data.history.map(h => {
+                let beforeParams = '';
+                let afterParams = '';
+                try {
+                    const bp = JSON.parse(h.beforeParams);
+                    const ap = JSON.parse(h.afterParams);
+                    beforeParams = Object.entries(bp).map(([k, v]) => `${k}:${v}`).join(', ');
+                    afterParams = Object.entries(ap).map(([k, v]) => `${k}:${v}`).join(', ');
+                } catch (e) {
+                    beforeParams = h.beforeParams;
+                    afterParams = h.afterParams;
+                }
+                return `<div class="review-item">
+                    <div class="review-date">${h.date} - ${h.type}</div>
+                    <div class="review-stats">
+                        <span class="review-stat">调整前: ${beforeParams}</span>
+                    </div>
+                    <div class="review-stats">
+                        <span class="review-stat">调整后: ${afterParams}</span>
+                    </div>
+                    <div class="review-suggestions">原因: ${h.reason}</div>
+                    <div class="review-suggestions">${h.result ? '效果: ' + h.result : ''}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadMarketSummary(isMorning = null) {
+            // 如果传入参数，发送给后端；否则默认获取下午盘
+            const url = isMorning !== null ? `/market/summary?isMorning=${isMorning}` : '/market/summary';
+            const data = await api(url);
+            const container = document.getElementById('market-summary-container');
+            if (!data || !data.summary) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">获取市场总结失败</div>';
+                return;
+            }
+            const s = data;
+            const upDownClass = s.avgChange > 0 ? 'review-win' : 'review-loss';
+            container.innerHTML = `<div class="review-item">
+                <div class="review-date">${s.date} ${s.timePeriod}</div>
+                <div class="review-stats">
+                    <span class="review-stat">📊 涨跌: <span class="${upDownClass}">${s.avgChange > 0 ? '+' : ''}${s.avgChange.toFixed(2)}%</span></span>
+                    <span class="review-stat">上涨: ${s.upCount}家</span>
+                    <span class="review-stat">下跌: ${s.downCount}家</span>
+                </div>
+                <div class="review-stats">
+                    <span class="review-stat">${s.sentiment}</span>
+                </div>
+                <div class="review-suggestions">${s.summary.replace(/\n/g, '<br>')}</div>
+            </div>`;
         }
 
         async function executeReview() {

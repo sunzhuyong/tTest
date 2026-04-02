@@ -1,4 +1,5 @@
 using TradingSimulator.Models;
+using System.Threading;
 
 namespace TradingSimulator.Services;
 
@@ -10,23 +11,80 @@ public class AutoTraderService
     private readonly TradingService _tradingService;
     private readonly MarketDataService _marketService;
     private readonly List<BaseStrategy> _strategies;
-    private System.Windows.Forms.Timer? _timer;
-    private System.Windows.Forms.Timer? _fundTimer;
+    private System.Threading.Timer? _scanTimer;
+    private System.Threading.Timer? _fundTimer;
+    private System.Threading.Timer? _reviewTimer;
     private bool _isRunning;
     public bool IsRunning => _isRunning;
     private readonly List<string> _tradeLogs = new();
 
-    // 自选股列表
+    // 自选股列表 (剔除科创板 688/300开头的)
     private readonly List<string> _stockWatchList = new()
     {
+        // 银行
         "600000", // 浦发银行
         "600036", // 招商银行
-        "600519", // 贵州茅台
         "000001", // 平安银行
+        "601398", // 工商银行
+        "601939", // 建设银行
+        // 白酒消费
+        "600519", // 贵州茅台
         "000858", // 五粮液
+        "601888", // 中国中免
+        // 新能源
         "300750", // 宁德时代
         "601318", // 中国平安
-        "601888"  // 中国中免
+        "600850", // 华东医药
+        // 核电板块
+        "601985", // 中国核电
+        "600175", // 中核技术
+        "600875", // 东方电气
+        "601727", // 上海电气
+        // 半导体/芯片
+        "603986", // 兆易创新
+        "603160", // 汇顶科技
+        "603501", // 北京君正
+        // 医药医疗
+        "600276", // 恒瑞医药
+        "300760", // 迈瑞医疗
+        "002044", // 江苏国泰
+        "300015", // 爱尔眼科
+        // 房地产
+        "000002", // 万科A
+        "600048", // 保利发展
+        "601155", // 新城控股
+        // 军工-航空航天
+        "600893", // 航发动力
+        "600038", // 中直股份
+        "000547", // 航天发展
+        "600879", // 航天机电
+        "600271", // 航天信息
+        "600118", // 中国卫星
+        // 机器人
+        "300124", // 汇川技术
+        "000333", // 美的集团
+        "600835", // 上海机电
+        "002139", // 拓普集团
+        // AI应用
+        "300033", // 同花顺
+        "300229", // 拓尔思
+        "300459", // 汤姆猫
+        "300467", // 迅游科技
+        "002195", // 二三四五
+        "002027", // 分众传媒
+        // 科技互联网
+        "600570", // 恒生电子
+        "002410", // 广联达
+        // 煤炭
+        "601001", // 大同煤业
+        "601088", // 陕西煤业
+        "600395", // 盘江股份
+        // 钢铁
+        "600019", // 宝钢股份
+        "600581", // 南钢股份
+        // 化工
+        "600309", // 万华化学
+        "600096", // 云天化
     };
 
     // 自选基金列表
@@ -41,7 +99,6 @@ public class AutoTraderService
 
     private readonly FeishuNotifyService _feishuNotify;
     private DailyReviewService? _reviewService;
-    private System.Windows.Forms.Timer? _reviewTimer;
 
     public event Action<string>? OnTradeExecuted;
     public event Action<string>? OnLogUpdated;
@@ -81,15 +138,35 @@ public class AutoTraderService
     /// </summary>
     public void Start()
     {
-        if (_isRunning) return;
+        if (_isRunning)
+        {
+            AddLog("自动交易已在运行中，跳过重复启动");
+            return;
+        }
 
         _isRunning = true;
         AddLog("========== 自动交易系统启动 ==========");
 
-        // 股票扫描定时器 - 每30分钟扫描一次
-        _timer = new System.Windows.Forms.Timer { Interval = 30 * 60 * 1000 };
-        _timer.Tick += async (s, e) => await ScanAndTradeAsync();
-        _timer.Start();
+        // 股票扫描定时器 - 使用 System.Threading.Timer
+        // 如果定时器已存在，先释放
+        _scanTimer?.Dispose();
+        Console.WriteLine($"[DEBUG] 创建扫描定时器，10分钟后首次触发，之后每10分钟...");
+        _scanTimer = new System.Threading.Timer(state =>
+        {
+            // 同步调用，避免async回调问题
+            Console.WriteLine($"[定时器回调] 触发扫描... 时间: {DateTime.Now:HH:mm:ss}");
+            AddLog($"[定时器] 触发自动扫描...");
+            try
+            {
+                ScanAndTradeAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[定时器] 扫描异常: {ex.Message}");
+                AddLog($"[定时器] 扫描异常: {ex.Message}");
+            }
+        }, null, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
+        AddLog("[定时器] 扫描定时器已启动，每10分钟触发一次");
 
         // 基金定时器 - 14:50执行
         StartFundTimer();
@@ -100,7 +177,7 @@ public class AutoTraderService
         // 立即执行一次
         _ = ScanAndTradeAsync();
 
-        AddLog("已启动股票扫描 (每30分钟) 和基金定时 (14:50) 和复盘 (15:10)");
+        AddLog("已启动股票扫描 (每10分钟) 和基金定时 (14:50) 和复盘 (15:10)");
     }
 
     /// <summary>
@@ -111,27 +188,78 @@ public class AutoTraderService
         _reviewService = reviewService;
     }
 
+    private MarketSummaryService? _marketSummaryService;
+
+    /// <summary>
+    /// 设置市场概况服务
+    /// </summary>
+    public void SetMarketSummaryService(MarketSummaryService marketSummaryService)
+    {
+        _marketSummaryService = marketSummaryService;
+    }
+
     /// <summary>
     /// 启动复盘定时器
     /// </summary>
     private void StartReviewTimer()
     {
-        // 每分钟检查一次是否是15:10
-        _reviewTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
-        _reviewTimer.Tick += async (s, e) =>
+        // 每分钟检查一次
+        _reviewTimer = new System.Threading.Timer(async _ =>
         {
-            // 检查是否收市后（15:10左右）
-            if (DateTime.Now.Hour == 15 && DateTime.Now.Minute == 10)
+            try
             {
-                // 检查今天是否已复盘
-                var latest = _reviewService?.GetLatestReview();
-                if (latest == null || latest.Date.Date < DateTime.Today)
+                var now = DateTime.Now;
+
+                // 检查是否收市后（15:00左右）生成市场总结
+                if (now.Hour == 15 && now.Minute == 0)
                 {
-                    await ExecuteDailyReviewAsync();
+                    await SendMarketSummaryAsync(false);
+                }
+
+                // 检查是否午盘结束（11:30）生成午间总结
+                if (now.Hour == 11 && now.Minute == 30)
+                {
+                    await SendMarketSummaryAsync(true);
+                }
+
+                // 检查是否收市后（15:10左右）执行复盘
+                if (now.Hour == 15 && now.Minute == 10)
+                {
+                    // 检查今天是否已复盘
+                    var latest = _reviewService?.GetLatestReview();
+                    if (latest == null || latest.Date.Date < DateTime.Today)
+                    {
+                        await ExecuteDailyReviewAsync();
+                    }
                 }
             }
-        };
-        _reviewTimer.Start();
+            catch (Exception ex)
+            {
+                AddLog($"[复盘定时器] 异常: {ex.Message}");
+            }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    }
+
+    /// <summary>
+    /// 发送市场总结
+    /// </summary>
+    private async Task SendMarketSummaryAsync(bool isMorning)
+    {
+        if (_marketSummaryService == null || _feishuNotify == null)
+            return;
+
+        try
+        {
+            var summary = await _marketSummaryService.GenerateSummaryAsync(isMorning);
+            await _feishuNotify.SendMessage(
+                isMorning ? "【午间市场总结】" : "【收盘市场总结】",
+                summary.Summary);
+            AddLog(isMorning ? ">>> 午间市场总结已发送" : ">>> 收盘市场总结已发送");
+        }
+        catch (Exception ex)
+        {
+            AddLog($"[错误] 生成市场总结失败: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -157,12 +285,16 @@ public class AutoTraderService
             AddLog($"复盘失败: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// 停止自动交易
     /// </summary>
     public void Stop()
     {
         _isRunning = false;
-        _timer?.Stop();
-        _fundTimer?.Stop();
+        _scanTimer?.Dispose();
+        _fundTimer?.Dispose();
+        _reviewTimer?.Dispose();
         AddLog("========== 自动交易系统已停止 ==========");
     }
 
@@ -172,15 +304,20 @@ public class AutoTraderService
     private void StartFundTimer()
     {
         // 每分钟检查一次是否是14:50
-        _fundTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
-        _fundTimer.Tick += async (s, e) =>
+        _fundTimer = new System.Threading.Timer(async _ =>
         {
-            if (DateTime.Now.Hour == 14 && DateTime.Now.Minute == 50)
+            try
             {
-                await ExecuteFundTradingAsync();
+                if (DateTime.Now.Hour == 14 && DateTime.Now.Minute == 50)
+                {
+                    await ExecuteFundTradingAsync();
+                }
             }
-        };
-        _fundTimer.Start();
+            catch (Exception ex)
+            {
+                AddLog($"[基金定时器] 异常: {ex.Message}");
+            }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
     /// <summary>
@@ -211,7 +348,17 @@ public class AutoTraderService
         var trades = _tradingService.GetTradeRecords();
 
         // 扫描股票
-        await ScanStocksAsync(positions, trades);
+        var (buySignals, sellSignals) = await ScanStocksAsync(positions, trades);
+
+        // 发送扫描报告到飞书
+        Console.WriteLine($"[DEBUG] 发送扫描报告: 买入={buySignals}, 卖出={sellSignals}");
+        await _feishuNotify.SendScanReport(
+            _stockWatchList.Count,
+            _fundWatchList.Count,
+            buySignals,
+            sellSignals,
+            $"扫描完成，买入信号: {buySignals}, 卖出信号: {sellSignals}");
+        Console.WriteLine("[DEBUG] 扫描报告已发送");
 
         AddLog(">>> 本次扫描完成");
     }
@@ -219,8 +366,11 @@ public class AutoTraderService
     /// <summary>
     /// 扫描股票
     /// </summary>
-    private async Task ScanStocksAsync(List<Position> positions, List<TradeRecord> trades)
+    private async Task<(int buySignals, int sellSignals)> ScanStocksAsync(List<Position> positions, List<TradeRecord> trades)
     {
+        int buySignals = 0;
+        int sellSignals = 0;
+
         foreach (var code in _stockWatchList)
         {
             try
@@ -237,6 +387,7 @@ public class AutoTraderService
                 {
                     if (quote.ChangePercent > 8) // 涨幅>8%可以考虑卖出
                     {
+                        sellSignals++;
                         AddLog($"[卖出信号] {quote.Name} 涨幅{quote.ChangePercent:N2}%，达到止盈点");
                         // 可以自动卖出，这里先记录
                         AddLog($"  -> 建议卖出: 数量{position.Quantity}, 当前价格{quote.CurrentPrice:N2}");
@@ -251,6 +402,7 @@ public class AutoTraderService
                 var signal = await strategy.AnalyzeAsync(quote);
                 if (signal != null && strategy.ShouldTrade(positions, trades))
                 {
+                    buySignals++;
                     AddLog($"[买入信号] {signal.Name} ({signal.Code})");
                     AddLog($"  原因: {signal.Reason}");
                     AddLog($"  当前价格: {signal.CurrentPrice:N2}, 评分: {signal.Score}");
@@ -281,6 +433,8 @@ public class AutoTraderService
                 AddLog($"扫描股票{code}出错: {ex.Message}");
             }
         }
+
+        return (buySignals, sellSignals);
     }
 
     /// <summary>
