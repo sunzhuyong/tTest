@@ -10,10 +10,10 @@ namespace TradingSimulator.Services;
 public class MarketDataService
 {
     private readonly HttpClient _httpClient;
-    private readonly bool _useMockData = false;  // 默认使用真实数据
+    private readonly bool _useMockData = false;
 
-    // 模拟备用数据（真实API失败时使用）
-    private readonly Dictionary<string, (string name, decimal basePrice)> _mockStocks = new()
+    // 备用静态价格（非交易时间使用）
+    private readonly Dictionary<string, (string name, decimal basePrice)> _staticStocks = new()
     {
         ["600000"] = ("浦发银行", 10.50m),
         ["600036"] = ("招商银行", 35.80m),
@@ -25,7 +25,7 @@ public class MarketDataService
         ["601888"] = ("中国中免", 68.90m),
     };
 
-    private readonly Dictionary<string, (string name, decimal basePrice)> _mockFunds = new()
+    private readonly Dictionary<string, (string name, decimal basePrice)> _staticFunds = new()
     {
         ["161039"] = ("易方达上证50ETF", 3.256m),
         ["510300"] = ("华泰柏瑞沪深300ETF", 3.890m),
@@ -40,7 +40,6 @@ public class MarketDataService
     {
         _httpClient = new HttpClient();
         _httpClient.Timeout = TimeSpan.FromSeconds(10);
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
     }
 
     /// <summary>
@@ -48,31 +47,25 @@ public class MarketDataService
     /// </summary>
     public async Task<Security?> GetStockQuoteAsync(string code)
     {
-        if (_useMockData)
-            return GetMockStockQuote(code);
+        // 非交易时间用静态价格
+        if (!MarketTime.IsTradingTime())
+            return GetStaticStockQuote(code);
 
         try
         {
-            // 尝试新浪财经API
-            var quote = await GetFromSinaAsync(code);
-            if (quote != null) return quote;
-
-            // 尝试腾讯财经API
-            quote = await GetFromTencentAsync(code);
-            if (quote != null) return quote;
-
-            // 尝试网易财经API
-            quote = await GetFrom163Async(code);
-            if (quote != null) return quote;
-
-            Console.WriteLine($"[行情] {code} 获取真实报价失败，使用模拟数据");
-            return GetMockStockQuote(code);
+            // 尝试东方财富API
+            var quote = await GetFromEastMoneyAsync(code);
+            // 如果API返回0价格（非交易时间），使用静态价格
+            if (quote != null && quote.CurrentPrice > 0)
+                return quote;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[行情] {code} 获取失败: {ex.Message}，使用模拟数据");
-            return GetMockStockQuote(code);
+            Console.WriteLine($"[行情] {code} 东方财富失败: {ex.Message}");
         }
+
+        // 返回静态价格
+        return GetStaticStockQuote(code);
     }
 
     /// <summary>
@@ -80,59 +73,57 @@ public class MarketDataService
     /// </summary>
     public async Task<Security?> GetFundQuoteAsync(string code)
     {
-        if (_useMockData)
-            return GetMockFundQuote(code);
+        if (!MarketTime.IsTradingTime())
+            return GetStaticFundQuote(code);
 
         try
         {
-            // 尝试新浪基金API
-            var quote = await GetFromSinaFundAsync(code);
+            var quote = await GetFromEastMoneyFundAsync(code);
             if (quote != null) return quote;
-
-            Console.WriteLine($"[基金] {code} 获取失败，使用模拟数据");
-            return GetMockFundQuote(code);
         }
-        catch
+        catch (Exception ex)
         {
-            return GetMockFundQuote(code);
+            Console.WriteLine($"[基金] {code} 失败: {ex.Message}");
         }
+
+        return GetStaticFundQuote(code);
     }
 
     /// <summary>
-    /// 新浪财经API
+    /// 东方财富API - 股票
     /// </summary>
-    private async Task<Security?> GetFromSinaAsync(string code)
+    private async Task<Security?> GetFromEastMoneyAsync(string code)
     {
-        // 剔除科创板
         if (code.StartsWith("688"))
             return null;
 
-        var url = $"http://hq.sinajs.cn/list=sh{code},sz{code}";
-        var response = await _httpClient.GetStringAsync(url);
+        var symbol = code.StartsWith("6") ? "1." + code : "0." + code;
+        var url = $"https://push2.eastmoney.com/api/qt/stock/get?secid={symbol}&fields=f43,f44,f45,f46,f47,f48,f49,f50,f51,f52,f55,f57,f58,f59,f60,f116,f117,f162,f167,f168,f169,f170,f171,f173,f177,f178,f187,f188,f189,f190,f191,f192,f193";
 
-        var start = response.IndexOf('=');
-        if (start < 0) return null;
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        request.Headers.Add("Referer", "https://quote.eastmoney.com/");
 
-        var data = response.Substring(start + 1).Trim('"', '\n', '\r');
-        var fields = data.Split(',');
+        var response = await _httpClient.SendAsync(request);
+        var json = await response.Content.ReadAsStringAsync();
 
-        if (fields.Length < 10 || string.IsNullOrEmpty(fields[0]))
-            return null;
+        var data = JsonConvert.DeserializeObject<dynamic>(json);
+        if (data?.data == null) return null;
 
-        var name = fields[0];
-        var open = decimal.Parse(fields[1]);
-        var preClose = decimal.Parse(fields[2]);
-        var current = decimal.Parse(fields[3]);
-        var high = decimal.Parse(fields[4]);
-        var low = decimal.Parse(fields[5]);
-        var volume = decimal.Parse(fields[8]) / 10000;
-        var amount = decimal.Parse(fields[9]) / 10000;
-
-        var isShanghai = code.StartsWith("6");
+        var stockData = data.data;
+        var name = (string)stockData.f58;
+        var current = (decimal)stockData.f43 / 1000m;
+        var preClose = (decimal)stockData.f44 / 1000m;
+        var open = (decimal)stockData.f46 / 1000m;
+        var high = (decimal)stockData.f45 / 1000m;
+        var low = (decimal)stockData.f47 / 1000m;
+        var volume = (decimal)stockData.f48 / 10000m;
+        var amount = (decimal)stockData.f49 / 10000m;
+        var change = (decimal)stockData.f170 / 100m;
 
         return new Security
         {
-            Code = isShanghai ? "sh" + code : "sz" + code,
+            Code = code.StartsWith("6") ? "sh" + code : "sz" + code,
             Name = name,
             Type = SecurityType.Stock,
             OpenPrice = open,
@@ -141,166 +132,89 @@ public class MarketDataService
             LowPrice = low,
             Volume = volume,
             Amount = amount,
-            ChangePercent = preClose == 0 ? 0 : Math.Round((current - preClose) / preClose * 100, 2),
+            ChangePercent = change,
             UpdateTime = DateTime.Now
         };
     }
 
     /// <summary>
-    /// 腾讯财经API
+    /// 东方财富API - 基金
     /// </summary>
-    private async Task<Security?> GetFromTencentAsync(string code)
+    private async Task<Security?> GetFromEastMoneyFundAsync(string code)
     {
-        if (code.StartsWith("688"))
-            return null;
+        var url = $"https://fund.eastmoney.com/pingzhongdata/{code}.js";
 
-        var qs = code.StartsWith("6") ? "sh" + code : "sz" + code;
-        var url = $"https://qt.gtimg.cn/q={qs}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "Mozilla/5.0");
 
-        var response = await _httpClient.GetStringAsync(url);
-        if (string.IsNullOrEmpty(response) || response.Length < 50)
-            return null;
+        var response = await _httpClient.SendAsync(request);
+        var jsContent = await response.Content.ReadAsStringAsync();
 
-        // 格式: v_sh600000="1~浦发银行~10.50~10.48~10.52~10.45~10.51~50000000~500000000~..."
-        var parts = response.Split('"');
-        if (parts.Length < 2) return null;
+        // 解析JS中的数据
+        var gszMatch = System.Text.RegularExpressions.Regex.Match(jsContent, @"gsz=""([0-9.]+)""");
+        var gszPercentMatch = System.Text.RegularExpressions.Regex.Match(jsContent, @"gszPercent=""(-?[0-9.]+)""");
+        var nameMatch = System.Text.RegularExpressions.Regex.Match(jsContent, @"name=""([^""]+)""");
 
-        var fields = parts[1].Split('~');
-        if (fields.Length < 50) return null;
+        if (!gszMatch.Success) return null;
 
-        return new Security
-        {
-            Code = code.StartsWith("6") ? "sh" + code : "sz" + code,
-            Name = fields[1],
-            OpenPrice = decimal.Parse(fields[5]),
-            CurrentPrice = decimal.Parse(fields[3]),
-            HighPrice = decimal.Parse(fields[33]),
-            LowPrice = decimal.Parse(fields[34]),
-            Volume = decimal.Parse(fields[6]) / 10000,
-            Amount = decimal.Parse(fields[7]) / 10000,
-            ChangePercent = decimal.Parse(fields[38]),
-            UpdateTime = DateTime.Now
-        };
-    }
-
-    /// <summary>
-    /// 网易财经API
-    /// </summary>
-    private async Task<Security?> GetFrom163Async(string code)
-    {
-        if (code.StartsWith("688"))
-            return null;
-
-        var qs = code.StartsWith("6") ? "1" + code : "0" + code;
-        var url = $"http://quotes.money.163.com/service/chddata.html?code={qs}&fields=TCLOSE;HIGH;LOW;TOPEN;LCLOSE;CHG;PCHG;TURNOVER;VOTURNOVER;VATURNOVER";
-
-        var response = await _httpClient.GetStringAsync(url);
-        if (string.IsNullOrEmpty(response) || !response.Contains(","))
-            return null;
-
-        var lines = response.Split('\n');
-        if (lines.Length < 2) return null;
-
-        var lastLine = lines[^2];
-        var fields = lastLine.Split(',');
-
-        if (fields.Length < 10) return null;
-
-        return new Security
-        {
-            Code = code.StartsWith("6") ? "sh" + code : "sz" + code,
-            Name = fields[2],
-            CurrentPrice = decimal.Parse(fields[3]),
-            HighPrice = decimal.Parse(fields[4]),
-            LowPrice = decimal.Parse(fields[5]),
-            OpenPrice = decimal.Parse(fields[6]),
-            ChangePercent = decimal.Parse(fields[9].Trim('%')),
-            UpdateTime = DateTime.Now
-        };
-    }
-
-    /// <summary>
-    /// 新浪基金API
-    /// </summary>
-    private async Task<Security?> GetFromSinaFundAsync(string code)
-    {
-        var url = $"http://hq.sinajs.cn/list=f_{code}";
-        var response = await _httpClient.GetStringAsync(url);
-
-        var start = response.IndexOf('=');
-        if (start < 0) return null;
-
-        var data = response.Substring(start + 1).Trim('"', '\n', '\r');
-        var fields = data.Split(',');
-
-        if (fields.Length < 6 || string.IsNullOrEmpty(fields[0]))
-            return null;
-
-        var current = decimal.Parse(fields[0]);
-        var preClose = decimal.Parse(fields[1]);
-        var high = decimal.Parse(fields[2]);
-        var low = decimal.Parse(fields[3]);
-        var volume = decimal.Parse(fields[4]) / 10000;
+        var current = decimal.Parse(gszMatch.Groups[1].Value);
+        var change = gszPercentMatch.Success ? decimal.Parse(gszPercentMatch.Groups[1].Value) : 0m;
+        var name = nameMatch.Success ? nameMatch.Groups[1].Value : $"基金{code}";
 
         return new Security
         {
             Code = code,
-            Name = _mockFunds.TryGetValue(code, out var f) ? f.name : $"基金{code}",
+            Name = name,
             Type = SecurityType.Fund,
-            OpenPrice = preClose,
+            OpenPrice = current / (1 + change / 100),
             CurrentPrice = current,
-            HighPrice = high,
-            LowPrice = low,
-            Volume = volume,
-            ChangePercent = Math.Round((current - preClose) / preClose * 100, 2),
+            HighPrice = current * 1.01m,
+            LowPrice = current * 0.99m,
+            Volume = 0,
+            ChangePercent = change,
             UpdateTime = DateTime.Now
         };
     }
 
     /// <summary>
-    /// 模拟股票行情
+    /// 静态股票价格（非交易时间）
     /// </summary>
-    private Security? GetMockStockQuote(string code)
+    private Security? GetStaticStockQuote(string code)
     {
         if (code.StartsWith("688"))
             return null;
 
-        if (!_mockStocks.TryGetValue(code, out var stock))
+        if (!_staticStocks.TryGetValue(code, out var stock))
         {
-            stock = ($"股票{code}", 10.00m + (decimal)(_random.NextDouble() * 90));
+            stock = ($"股票{code}", 10.00m);
         }
 
-        var changePercent = (decimal)(_random.NextDouble() * 10 - 5);
-        var currentPrice = stock.basePrice * (1 + changePercent / 100);
-
+        // 非交易时间，价格不变
         return new Security
         {
             Code = code.StartsWith("6") ? "sh" + code : "sz" + code,
             Name = stock.name,
             Type = SecurityType.Stock,
             OpenPrice = stock.basePrice,
-            CurrentPrice = Math.Round(currentPrice, 2),
-            HighPrice = Math.Round(currentPrice * 1.02m, 2),
-            LowPrice = Math.Round(currentPrice * 0.98m, 2),
-            Volume = _random.Next(1000, 100000),
-            Amount = _random.Next(10000, 1000000),
-            ChangePercent = Math.Round(changePercent, 2),
+            CurrentPrice = stock.basePrice,
+            HighPrice = stock.basePrice,
+            LowPrice = stock.basePrice,
+            Volume = 0,
+            Amount = 0,
+            ChangePercent = 0,
             UpdateTime = DateTime.Now
         };
     }
 
     /// <summary>
-    /// 模拟基金行情
+    /// 静态基金价格
     /// </summary>
-    private Security? GetMockFundQuote(string code)
+    private Security? GetStaticFundQuote(string code)
     {
-        if (!_mockFunds.TryGetValue(code, out var fund))
+        if (!_staticFunds.TryGetValue(code, out var fund))
         {
-            fund = ($"基金{code}", 1.00m + (decimal)(_random.NextDouble() * 3));
+            fund = ($"基金{code}", 1.50m);
         }
-
-        var changePercent = (decimal)(_random.NextDouble() * 6 - 3);
-        var currentPrice = fund.basePrice * (1 + changePercent / 100);
 
         return new Security
         {
@@ -308,12 +222,12 @@ public class MarketDataService
             Name = fund.name,
             Type = SecurityType.Fund,
             OpenPrice = fund.basePrice,
-            CurrentPrice = Math.Round(currentPrice, 3),
-            HighPrice = Math.Round(currentPrice * 1.01m, 3),
-            LowPrice = Math.Round(currentPrice * 0.99m, 3),
-            Volume = _random.Next(1000, 50000),
-            Amount = _random.Next(1000, 50000),
-            ChangePercent = Math.Round(changePercent, 2),
+            CurrentPrice = fund.basePrice,
+            HighPrice = fund.basePrice,
+            LowPrice = fund.basePrice,
+            Volume = 0,
+            Amount = 0,
+            ChangePercent = 0,
             UpdateTime = DateTime.Now
         };
     }

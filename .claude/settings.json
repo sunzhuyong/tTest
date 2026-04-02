@@ -80,7 +80,9 @@
       "Bash(curl -s https://unpkg.com/vue@3/dist/vue.global.prod.js -o /tmp/vue.js)",
       "Bash(powershell -Command \"Stop-Process -Name 'TradingSimulator' -Force -ErrorAction SilentlyContinue; Stop-Process -Name dotnet -Force -ErrorAction SilentlyContinue\")",
       "Bash(curl -s -X POST http://localhost:5000/api/trading/buy -H \"Content-Type: application/json\" -d '{\"code\":\"600036\",\"quantity\":100}')",
-      "Bash(powershell -Command \"Get-Process -Name 'TradingSimulator' -ErrorAction SilentlyContinue | Stop-Process -Force\")"
+      "Bash(powershell -Command \"Get-Process -Name 'TradingSimulator' -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(curl -s \"https://push2.eastmoney.com/api/qt/stock/get?secid=1.600000&fields=f43,f44,f45,f46,f47,f58,f170\" -H \"User-Agent: Mozilla/5.0\")",
+      "Bash(curl -s \"https://qt.gtimg.cn/q=sh600000\" -H \"User-Agent: Mozilla/5.0\")"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
