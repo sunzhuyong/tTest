@@ -124,11 +124,20 @@
       "Bash(curl -s \"http://localhost:5000/api/trading/market/summary?isMorning=true\")",
       "Bash(curl -s http://localhost:5000/Web/)",
       "Bash(curl -s \"http://localhost:5000/Web/index.html\")",
-      "Bash(powershell -Command \"Stop-Process -Id 30220 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 30220 -Force\")",
+      "Bash(npm install:*)",
+      "Bash(git clone:*)",
+      "Bash(powershell -Command \"Remove-Item -Path 'c:\\\\Users\\\\Administrator\\\\everything-claude-code' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'c:\\\\Users\\\\Administrator\\\\claude-code-best-practice' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'c:\\\\Users\\\\Administrator\\\\get-shit-done' -Recurse -Force -ErrorAction SilentlyContinue\")",
+      "Bash(curl -sL https://api.github.com/repos/affaan-m/everything-claude-code)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://github.com/affaan-m/everything-claude-code)",
+      "Bash(curl -sL --connect-timeout 10 https://api.github.com/repos/affaan-m/everything-claude-code)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "c:\\Users\\Administrator\\.claude"
+      "c:\\Users\\Administrator\\.claude",
+      "c:\\Users\\Administrator\\everything-claude-code",
+      "c:\\Users\\Administrator\\get-shit-done",
+      "c:\\Users\\Administrator"
     ],
     "allowedTools": [
       "Read",
